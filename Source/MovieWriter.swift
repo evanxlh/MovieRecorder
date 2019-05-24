@@ -18,6 +18,13 @@ public protocol MovieWriterDelegate: class {
  A completely asychronouse movie writer for recording movie.
  It's designed for read-time movie recording without blocking main thread.
  
+ **Workflow**:
+ 1. Create movie writer
+ 2. Add audio/video track
+ 3. start writer
+ 4. append sample buffer
+ 5. stop writer
+ 
  Reference: [Apple Sample: RosyWriter](https://github.com/robovm/apple-ios-samples/tree/master/RosyWriter)
  */
 public final class MovieWriter {
@@ -38,6 +45,7 @@ public final class MovieWriter {
     
     fileprivate var locker = MutexLock()
     fileprivate var writeQueue = DispatchQueue(label: "MovieRecorder.WriteQueue")
+    fileprivate var delegateQueue: DispatchQueue
     
     fileprivate var state = State.stopped
     fileprivate var sessionStarted = false
@@ -70,11 +78,13 @@ public final class MovieWriter {
     }
 
     /**
-     Init with movie file saved url, and movie file container type.
+     Init with movie file saved url, movie file container type and delegate callback queue.
+     Delegate will be invoked on the main thread default if no callback queue is specified.
      */
-    public init(outputURL: URL, fileType: MovieFileType = .mp4) {
+    public init(outputURL: URL, fileType: MovieFileType = .mp4, delegateCallbackQueue: DispatchQueue = .main) {
         self.outputURL = outputURL
         self.fileType = fileType
+        self.delegateQueue = delegateCallbackQueue
     }
     
     //MARK: - Configurate Audio/Video Tracks
@@ -221,27 +231,36 @@ fileprivate extension MovieWriter {
         if state != newState {
             state = newState
             
-            switch newState {
-            case .cancelled:
-                break
-            case .failed:
-                break
-            case .stopped:
-                break
-            case .writing:
-                break
-            default:
-                break
+            delegateQueue.async {
+                self.handleCallbackDelegate(state: newState, error: error)
             }
         }
         
         return true
     }
     
+    func handleCallbackDelegate(state: State, error: Error?) {
+        switch state {
+        case .cancelled:
+            writeQueue.async { self.cleanAll() }
+            delegate?.movieWriterDidCancel(self)
+        case .failed:
+            writeQueue.async { self.cleanAll() }
+            delegate?.movieWriterDidFail(self, error: error!)
+        case .stopped:
+            writeQueue.async { self.tearDownWriter() }
+            delegate?.movieWriterDidStop(self, movieOutputURL: outputURL)
+        case .writing:
+            delegate?.movieWriterDidStart(self)
+        default:
+            break
+        }
+    }
+    
     func prepareWriter() {
         
         do {
-            cleanExistingMovieFile()
+            removeResidualMovieFile()
             assetWriter = try AVAssetWriter(url: outputURL, fileType: fileType.rawType)
             if metadata != nil {
                 assetWriter!.metadata = metadata!
@@ -326,8 +345,19 @@ fileprivate extension MovieWriter {
         }
     }
     
-    func cleanExistingMovieFile() {
+    func removeResidualMovieFile() {
         try? FileManager.default.removeItem(at: outputURL)
+    }
+    
+    func tearDownWriter() {
+        audioWriterInput = nil
+        videoWriterInput = nil
+        assetWriter = nil
+    }
+    
+    func cleanAll() {
+        removeResidualMovieFile()
+        tearDownWriter()
     }
 }
 

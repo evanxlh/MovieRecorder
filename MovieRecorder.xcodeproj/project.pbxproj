@@ -13,6 +13,11 @@
 		20486373229669C1002A8781 /* EncodingSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20486372229669C1002A8781 /* EncodingSettings.swift */; };
 		2048637522967747002A8781 /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2048637422967747002A8781 /* Helpers.swift */; };
 		204863772296947C002A8781 /* MovieWriter+Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 204863762296947C002A8781 /* MovieWriter+Internal.swift */; };
+		20B26E0422979731008F382E /* BufferProducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B26E0322979731008F382E /* BufferProducer.swift */; };
+		20B26E0922979C80008F382E /* SystemAudioVideoProducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B26E0822979C80008F382E /* SystemAudioVideoProducer.swift */; };
+		20B26E0D2297D0CE008F382E /* SystemCameraRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B26E0C2297D0CE008F382E /* SystemCameraRecorder.swift */; };
+		20B26E0F2297D63D008F382E /* SCNViewRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B26E0E2297D63D008F382E /* SCNViewRecorder.swift */; };
+		20B26E132297EC90008F382E /* Recordable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B26E122297EC90008F382E /* Recordable.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +29,11 @@
 		20486372229669C1002A8781 /* EncodingSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncodingSettings.swift; sourceTree = "<group>"; };
 		2048637422967747002A8781 /* Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helpers.swift; sourceTree = "<group>"; };
 		204863762296947C002A8781 /* MovieWriter+Internal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MovieWriter+Internal.swift"; sourceTree = "<group>"; };
+		20B26E0322979731008F382E /* BufferProducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BufferProducer.swift; sourceTree = "<group>"; };
+		20B26E0822979C80008F382E /* SystemAudioVideoProducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAudioVideoProducer.swift; sourceTree = "<group>"; };
+		20B26E0C2297D0CE008F382E /* SystemCameraRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCameraRecorder.swift; sourceTree = "<group>"; };
+		20B26E0E2297D63D008F382E /* SCNViewRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SCNViewRecorder.swift; sourceTree = "<group>"; };
+		20B26E122297EC90008F382E /* Recordable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recordable.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -56,8 +66,9 @@
 		2048636C229631E8002A8781 /* Source */ = {
 			isa = PBXGroup;
 			children = (
-				2048636E2296323B002A8781 /* MovieWriter.swift */,
-				204863762296947C002A8781 /* MovieWriter+Internal.swift */,
+				20B26E0722979768008F382E /* Producer */,
+				20B26E02229796A3008F382E /* Recorder */,
+				20B26E012297966D008F382E /* MovieWriter */,
 				2048637022963E3B002A8781 /* Bitrate.swift */,
 				20486372229669C1002A8781 /* EncodingSettings.swift */,
 				2048637422967747002A8781 /* Helpers.swift */,
@@ -73,6 +84,34 @@
 				2048636722963192002A8781 /* Info.plist */,
 			);
 			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		20B26E012297966D008F382E /* MovieWriter */ = {
+			isa = PBXGroup;
+			children = (
+				2048636E2296323B002A8781 /* MovieWriter.swift */,
+				204863762296947C002A8781 /* MovieWriter+Internal.swift */,
+			);
+			name = MovieWriter;
+			sourceTree = "<group>";
+		};
+		20B26E02229796A3008F382E /* Recorder */ = {
+			isa = PBXGroup;
+			children = (
+				20B26E0C2297D0CE008F382E /* SystemCameraRecorder.swift */,
+				20B26E0E2297D63D008F382E /* SCNViewRecorder.swift */,
+				20B26E122297EC90008F382E /* Recordable.swift */,
+			);
+			name = Recorder;
+			sourceTree = "<group>";
+		};
+		20B26E0722979768008F382E /* Producer */ = {
+			isa = PBXGroup;
+			children = (
+				20B26E0322979731008F382E /* BufferProducer.swift */,
+				20B26E0822979C80008F382E /* SystemAudioVideoProducer.swift */,
+			);
+			name = Producer;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -154,10 +193,15 @@
 			buildActionMask = 2147483647;
 			files = (
 				2048636F2296323B002A8781 /* MovieWriter.swift in Sources */,
+				20B26E0D2297D0CE008F382E /* SystemCameraRecorder.swift in Sources */,
+				20B26E132297EC90008F382E /* Recordable.swift in Sources */,
+				20B26E0922979C80008F382E /* SystemAudioVideoProducer.swift in Sources */,
 				20486373229669C1002A8781 /* EncodingSettings.swift in Sources */,
+				20B26E0422979731008F382E /* BufferProducer.swift in Sources */,
 				2048637122963E3B002A8781 /* Bitrate.swift in Sources */,
 				2048637522967747002A8781 /* Helpers.swift in Sources */,
 				204863772296947C002A8781 /* MovieWriter+Internal.swift in Sources */,
+				20B26E0F2297D63D008F382E /* SCNViewRecorder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -218,6 +262,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
@@ -250,6 +295,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = me.evanxlh.MovieRecorder;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
@@ -299,6 +345,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
@@ -324,6 +371,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = me.evanxlh.MovieRecorder;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
