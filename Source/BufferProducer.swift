@@ -5,13 +5,38 @@
 //  Created by Evan Xie on 2019/5/24.
 //
 
-import AVFoundation
+import CoreMedia
 import CoreVideo
 
 public enum BufferType: Int {
     case audioSampleBuffer
     case videoSampleBuffer
     case videoPixelBuffer
+}
+
+public enum TimeScale {
+    case systemDefault
+    case custom(CMTimeScale)
+    
+    private static let systemTimeScaleRawValue = CMClockGetTime(CMClockGetHostTimeClock()).timescale
+    
+    var rawValue: CMTimeScale {
+        switch self {
+        case .systemDefault:
+            return TimeScale.systemTimeScaleRawValue
+        case .custom(let ts):
+            return ts
+        }
+    }
+    
+    var isSystemDefault: Bool {
+        switch self {
+        case .systemDefault:
+            return true
+        case .custom(let ts):
+            return TimeScale.systemTimeScaleRawValue == ts
+        }
+    }
 }
 
 public enum Buffer {
@@ -37,6 +62,8 @@ public protocol BufferProducerDelegate: class {
 }
 
 public protocol BufferProducer: class {
+    
+    var timeScale: TimeScale { get set }
     
     /**
      Start buffer producer, and output buffer periodicity.

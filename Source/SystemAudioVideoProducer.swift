@@ -36,10 +36,13 @@ public class SystemAudioVideoProducer: NSObject, BufferProducer {
     
     public private(set) var isCapturing: Bool = false
     
-    public init(mode: Mode) throws {
+    public var timeScale: TimeScale
+    
+    public init(mode: Mode, timeScale: TimeScale) throws {
         session = AVCaptureSession()
         session.sessionPreset = .hd4K3840x2160
         queue = DispatchQueue(label: "queue.CameraCaptureSession")
+        self.timeScale = timeScale
         super.init()
         try setupSession(mode)
     }
@@ -58,6 +61,7 @@ public class SystemAudioVideoProducer: NSObject, BufferProducer {
 extension SystemAudioVideoProducer: AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureVideoDataOutputSampleBufferDelegate {
     
     public func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+    
         if output.connection(with: .audio) == connection {
             delegate?.bufferProducer(self, didOutput: .audioSampleBuffer(sampleBuffer))
         } else if output.connection(with: .video) == connection {

@@ -1,5 +1,5 @@
 //
-//  SCNViewRecorder.swift
+//  SceneViewRecorder.swift
 //  MovieRecorder
 //
 //  Created by Evan Xie on 2019/5/24.
@@ -7,7 +7,7 @@
 
 import SceneKit
 
-public class SCNViewRecorder: Recordable {
+public class SceneViewRecorder: Recordable {
     
     fileprivate let scnView: SCNView
     fileprivate var scnViewOriginDelegate: SCNSceneRendererDelegate?
@@ -15,11 +15,17 @@ public class SCNViewRecorder: Recordable {
     fileprivate var audioProducer: SystemAudioVideoProducer?
     fileprivate var movieWriter: MovieWriter
     
+    fileprivate var timeScale = TimeScale.custom(1000)
     fileprivate var internalState = RecorderState.stopped
     fileprivate var lock = MutexLock()
     
-    fileprivate var startCallback: RecorderStartCallback?
-    fileprivate var stopCallback: RecorderStopCallback?
+    fileprivate var startCallback: (() -> Void)?
+    fileprivate var stopCallback: ((URL) -> Void)?
+    
+    public var errorHandler: RecorderErrorHandler?
+    
+    /// The queue for executing error handler, start/stop callback.
+    public var callbackQueue = DispatchQueue.main
     
     public var configuration: RecorderConfiguration
     
@@ -29,13 +35,10 @@ public class SCNViewRecorder: Recordable {
         return internalState
     }
     
-    public var isRecording: Bool {
-        return state == .recording
-    }
-    
-    public init(scnView: SCNView, configuration: RecorderConfiguration) {
+    public init(scnView: SCNView, configuration: RecorderConfiguration, errorHandler: RecorderErrorHandler?) {
         self.scnView = scnView
         self.configuration = configuration
+        self.errorHandler = errorHandler
         self.movieWriter = MovieWriter(outputURL: configuration.outputURL)
     }
     
@@ -43,7 +46,7 @@ public class SCNViewRecorder: Recordable {
         giveBackRenderDelegate()
     }
     
-    public func start(callback: @escaping (Result<Void, Error>) -> Void) {
+    public func start(callback: @escaping (() -> Void)) {
         guard transitionToState(.starting) else {
             fatalError("Invalid state for transitioning to starting state.")
         }
@@ -52,7 +55,7 @@ public class SCNViewRecorder: Recordable {
         movieWriter.start()
     }
     
-    public func stop(callback: @escaping (Result<URL, Error>) -> Void) {
+    public func stop(callback: @escaping ((URL) -> Void)) {
         guard transitionToState(.stopping) else {
             fatalError("Invalid state for transitioning to stopping state.")
         }
@@ -63,7 +66,7 @@ public class SCNViewRecorder: Recordable {
     
 }
 
-fileprivate extension SCNViewRecorder {
+fileprivate extension SceneViewRecorder {
     
     @discardableResult
     func transitionToState(_ newState: RecorderState) -> Bool {
@@ -79,16 +82,15 @@ fileprivate extension SCNViewRecorder {
     }
 }
 
-extension SCNViewRecorder: BufferProducerDelegate {
+extension SceneViewRecorder: BufferProducerDelegate {
     
     func setupBufferProducer() throws {
         
         if configuration.isAudioActive {
-            audioProducer = try SystemAudioVideoProducer(mode: .audio)
+            audioProducer = try SystemAudioVideoProducer(mode: .audio, timeScale: timeScale)
             audioProducer?.delegate = self
         }
-        
-        
+
     }
     
     public func bufferProducer(_ producer: BufferProducer, didOutput buffer: Buffer) {
@@ -108,45 +110,48 @@ extension SCNViewRecorder: BufferProducerDelegate {
     }
 }
 
-extension SCNViewRecorder: MovieWriterDelegate {
+extension SceneViewRecorder: MovieWriterDelegate {
     
-    public func movieWriterDidStart(_ writer: MovieWriter) {
+    func movieWriterDidStart(_ writer: MovieWriter) {
         transitionToState(.recording)
-        startCallback?(.success(()))
+        startCallback?()
         startCallback = nil
     }
     
-    public func movieWriterDidStop(_ writer: MovieWriter, movieOutputURL: URL) {
+    func movieWriterDidStop(_ writer: MovieWriter, movieOutputURL: URL) {
         transitionToState(.stopped)
-        stopCallback?(.success(configuration.outputURL))
+        stopCallback?(configuration.outputURL)
     }
     
-    public func movieWriterDidCancel(_ writer: MovieWriter) {
+    func movieWriterDidCancel(_ writer: MovieWriter) {
         // Recorder doesn't implement cancelling, so do nothing.
     }
     
-    public func movieWriterDidFail(_ writer: MovieWriter, error: MovieWriter.Error) {
+    func movieWriterDidFail(_ writer: MovieWriter, error: MovieWriter.Error) {
         
         let oldState = state
         transitionToState(.failed)
-        
-        switch oldState {
-        case .starting:
-            startCallback?(.failure(error))
-        case .stopping:
-            stopCallback?(.failure(error))
-        case .recording:
-            //TODO:
-            break
-        default:
-            break
+
+        callbackQueue.async {
+            switch oldState {
+            case .starting:
+                self.errorHandler?(.failedToStart(underlyingError: error))
+            case .stopping:
+                self.errorHandler?(.failedToStop(underlyingError: error))
+            case .recording:
+                self.errorHandler?(.failedToRecord(underlyingError: error))
+            default:
+                // Never happen in other states.
+                break
+            }
         }
     }
+    
 }
 
 //MARK: Takeover SCNView's Render Delegate
 
-fileprivate extension SCNViewRecorder {
+fileprivate extension SceneViewRecorder {
     
     func takeoverRenderDelegate() {
         scnViewOriginDelegate = scnView.delegate

@@ -7,7 +7,7 @@
 
 import AVFoundation
 
-public protocol MovieWriterDelegate: class {
+ protocol MovieWriterDelegate: class {
     func movieWriterDidStart(_ writer: MovieWriter)
     func movieWriterDidStop(_ writer: MovieWriter, movieOutputURL: URL)
     func movieWriterDidCancel(_ writer: MovieWriter)
@@ -27,7 +27,7 @@ public protocol MovieWriterDelegate: class {
  
  Reference: [Apple Sample: RosyWriter](https://github.com/robovm/apple-ios-samples/tree/master/RosyWriter)
  */
-public final class MovieWriter {
+ internal final class MovieWriter {
     
     //MARK: - Private Properties
     
@@ -64,16 +64,16 @@ public final class MovieWriter {
     
     //MARK: -
     
-    public enum Error: Swift.Error {
+     enum Error: Swift.Error {
         case unsupportedTrackEncodingSettings([String: Any])
         case underlyingError(NSError)
     }
     
-    public weak var delegate: MovieWriterDelegate?
+     weak var delegate: MovieWriterDelegate?
     
     /// Indicates movie writer is ready for appending sample buffer or not.
     /// Only when `true`, you can append sample buffer.
-    public var isWriting: Bool {
+     var isWriting: Bool {
         return syncedState == .writing
     }
 
@@ -81,7 +81,7 @@ public final class MovieWriter {
      Init with movie file saved url, movie file container type and delegate callback queue.
      Delegate will be invoked on the main thread default if no callback queue is specified.
      */
-    public init(outputURL: URL, fileType: MovieFileType = .mp4, delegateCallbackQueue: DispatchQueue = .main) {
+     init(outputURL: URL, fileType: MovieFileType = .mp4, delegateCallbackQueue: DispatchQueue = .main) {
         self.outputURL = outputURL
         self.fileType = fileType
         self.delegateQueue = delegateCallbackQueue
@@ -89,7 +89,7 @@ public final class MovieWriter {
     
     //MARK: - Configurate Audio/Video Tracks
     
-    public func addAudioTrack(encodingSettings: AudioEncodingSettings) {
+     func addAudioTrack(encodingSettings: AudioEncodingSettings) {
         locker.lock()
         defer { locker.unlock() }
         
@@ -100,7 +100,7 @@ public final class MovieWriter {
         self.audioSettings = encodingSettings
     }
     
-    public func addVideoTrack(encodingSettings: VideoEncodingSettings, transform: CGAffineTransform? = nil) {
+     func addVideoTrack(encodingSettings: VideoEncodingSettings, transform: CGAffineTransform? = nil) {
         locker.lock()
         defer { locker.unlock() }
         
@@ -122,7 +122,7 @@ extension MovieWriter {
      When start successfully, `movieWriterDidStart` delegate function will be invoked.
      If failed, `movieWriterDidFail` delegate function will be invoked.
      */
-    public func start() {
+     func start() {
         locker.lock()
         if audioSettings == nil && videoSettings == nil {
             fatalError("No track added, please add audio/video tracks before writer starting.")
@@ -138,7 +138,7 @@ extension MovieWriter {
         }
     }
     
-    public func stop() {
+     func stop() {
         guard transitionToState(.stoppingPhase1) else {
             print("[Warning]: Can not stop movie writer in current state: \(state.description)")
             return
@@ -164,7 +164,7 @@ extension MovieWriter {
         }
     }
     
-    public func cancel() {
+     func cancel() {
         
         guard transitionToState(.cancelling) else {
             print("[Warning]: Movie writer is not writing, no need cancelling.")
@@ -182,17 +182,17 @@ extension MovieWriter {
     
     //MARK: - Write Audio/Video SampleBuffer
     
-    public func append(audioSampleBuffer: CMSampleBuffer) {
+     func append(audioSampleBuffer: CMSampleBuffer) {
         validateVideoSampleBufferAppendOperation()
         append(sampleBuffer: audioSampleBuffer, track: .audio)
     }
     
-    public func append(videoSampleBuffer: CMSampleBuffer) {
+     func append(videoSampleBuffer: CMSampleBuffer) {
         validateVideoSampleBufferAppendOperation()
         append(sampleBuffer: videoSampleBuffer, track: .video)
     }
     
-    public func append(videoPixelBuffer: CVPixelBuffer, presentationTime: CMTime) {
+     func append(videoPixelBuffer: CVPixelBuffer, presentationTime: CMTime) {
         validateVideoSampleBufferAppendOperation()
         
         var sampleBuffer: CMSampleBuffer?
@@ -327,12 +327,19 @@ fileprivate extension MovieWriter {
                 return
             }
             
-            if !self.isSessionStarted {
+            // Makesure the video doesn't appear black frame in the beginning.
+            if !self.isSessionStarted && track == .video {
                 self.assetWriter!.startSession(atSourceTime: CMSampleBufferGetPresentationTimeStamp(sampleBuffer))
                 self.sessionStarted = true
             }
             
-            let input = (track == .video) ?  self.videoWriterInput! : self.audioWriterInput!
+            let input: AVAssetWriterInput
+            if track == .video {
+                input = self.videoWriterInput!
+            } else {
+                input = self.audioWriterInput!
+            }
+            
             if input.isReadyForMoreMediaData {
                 if !input.append(sampleBuffer) {
                     if self.assetWriter!.status == .failed {

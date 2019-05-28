@@ -7,17 +7,67 @@
 
 import Foundation
 
-public typealias RecorderStartCallback = (_ result: Result<Void, Error>) -> Void
-public typealias RecorderStopCallback = (_ result: Result<URL, Error>) -> Void
+public typealias RecorderErrorHandler = (_ error: RecorderError) -> Void
+
+public enum RecorderError: Error {
+    
+    /// Fail to start recorder
+    case failedToStart(underlyingError: Error)
+    
+    /// Fail to stop recorder
+    case failedToStop(underlyingError: Error)
+    
+    /// Fail to write more audio/video buffer data when recording.
+    case failedToRecord(underlyingError: Error)
+}
+
+public struct RecorderConfiguration {
+    public var videoSize: CGSize
+    public var quality: Quality
+    public var outputURL: URL
+    public var isAudioActive: Bool
+    
+    public init(outputURL: URL, videoSize: CGSize, quality: Quality = .medium, isAudioActive: Bool = true) {
+        self.outputURL = outputURL
+        self.videoSize = videoSize
+        self.quality = quality
+        self.isAudioActive = isAudioActive
+    }
+}
 
 public protocol Recordable: AnyObject {
     
+    /// Handle recorder possible errors.
+    var errorHandler: RecorderErrorHandler? { get set }
+    
+    /// Recorder configuration for specifying video resolution, quality, and so on.
     var configuration: RecorderConfiguration { get set }
+    
+    /// Get current recorder state, it's thread safe.
     var state: RecorderState { get }
     
-    func start(callback: @escaping RecorderStartCallback)
-    func stop(callback: @escaping RecorderStopCallback)
+    /**
+     Start recording. When successfully, callback block will be executed on the main thread.
+     If failed, `errorHandler` will be executed on the main thread.
+     */
+    func start(callback: @escaping (() -> Void))
+    
+    /**
+     Stop recording. When successfully, callback block with the movie url will be executed on the main thread.
+     If failed, `errorHandler` will be executed on the main thread.
+     */
+    func stop(callback: @escaping ((URL) -> Void))
 }
+
+extension Recordable {
+    
+    /// Check recorder is recording now or not, means recorder is started successfully.
+    /// In this state, recorder can write audio/video buffer data to movie file.
+    public var isRecording: Bool {
+        return state == .recording
+    }
+}
+
 
 public enum RecorderState: Int, CustomStringConvertible {
     case starting
@@ -70,19 +120,5 @@ public enum RecorderState: Int, CustomStringConvertible {
     
     private var failedTransitableStates: [RecorderState] {
         return [.starting]
-    }
-}
-
-public struct RecorderConfiguration {
-    public var videoSize: CGSize
-    public var quality: Quality
-    public var outputURL: URL
-    public var isAudioActive: Bool
-    
-    public init(outputURL: URL, videoSize: CGSize, quality: Quality = .medium, isAudioActive: Bool = true) {
-        self.outputURL = outputURL
-        self.videoSize = videoSize
-        self.quality = quality
-        self.isAudioActive = isAudioActive
     }
 }
