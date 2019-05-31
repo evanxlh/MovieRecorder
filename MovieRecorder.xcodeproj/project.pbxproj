@@ -7,28 +7,32 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		202417C4229D0CD900E38F84 /* SceneViewProducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 202417C3229D0CD900E38F84 /* SceneViewProducer.swift */; };
+		202417C4229D0CD900E38F84 /* SCNViewTrackDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 202417C3229D0CD900E38F84 /* SCNViewTrackDataProvider.swift */; };
 		202417C6229D126D00E38F84 /* PixelBufferPool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 202417C5229D126D00E38F84 /* PixelBufferPool.swift */; };
 		202417C8229D157F00E38F84 /* InternalErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 202417C7229D157F00E38F84 /* InternalErrors.swift */; };
 		202417CB229D5E0B00E38F84 /* CMSampleBufferExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 202417CA229D5E0B00E38F84 /* CMSampleBufferExtension.swift */; };
+		20400D23229F74C500056267 /* MovieRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20400D22229F74C500056267 /* MovieRecorder.swift */; };
+		20400D25229F756500056267 /* MovieTrackDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20400D24229F756500056267 /* MovieTrackDataProvider.swift */; };
+		20400D27229FB00200056267 /* AudioCaptureSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20400D26229FB00200056267 /* AudioCaptureSession.swift */; };
+		20400D4D229FE40700056267 /* CVPixelBufferExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20400D4C229FE40700056267 /* CVPixelBufferExtension.swift */; };
 		2048636822963192002A8781 /* MovieRecorder.h in Headers */ = {isa = PBXBuildFile; fileRef = 2048636622963192002A8781 /* MovieRecorder.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		2048636F2296323B002A8781 /* MovieWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2048636E2296323B002A8781 /* MovieWriter.swift */; };
 		2048637122963E3B002A8781 /* Bitrate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2048637022963E3B002A8781 /* Bitrate.swift */; };
 		20486373229669C1002A8781 /* EncodingSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20486372229669C1002A8781 /* EncodingSettings.swift */; };
 		2048637522967747002A8781 /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2048637422967747002A8781 /* Helpers.swift */; };
 		204863772296947C002A8781 /* MovieWriter+Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 204863762296947C002A8781 /* MovieWriter+Internal.swift */; };
-		20B26E0422979731008F382E /* BufferProducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B26E0322979731008F382E /* BufferProducer.swift */; };
-		20B26E0922979C80008F382E /* SystemAudioVideoProducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B26E0822979C80008F382E /* SystemAudioVideoProducer.swift */; };
-		20B26E0D2297D0CE008F382E /* SystemCameraRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B26E0C2297D0CE008F382E /* SystemCameraRecorder.swift */; };
-		20B26E0F2297D63D008F382E /* SceneViewRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B26E0E2297D63D008F382E /* SceneViewRecorder.swift */; };
-		20B26E132297EC90008F382E /* Recordable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B26E122297EC90008F382E /* Recordable.swift */; };
+		20B26E0922979C80008F382E /* AVCameraTrackDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B26E0822979C80008F382E /* AVCameraTrackDataProvider.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		202417C3229D0CD900E38F84 /* SceneViewProducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneViewProducer.swift; sourceTree = "<group>"; };
+		202417C3229D0CD900E38F84 /* SCNViewTrackDataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SCNViewTrackDataProvider.swift; sourceTree = "<group>"; };
 		202417C5229D126D00E38F84 /* PixelBufferPool.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PixelBufferPool.swift; sourceTree = "<group>"; };
 		202417C7229D157F00E38F84 /* InternalErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InternalErrors.swift; sourceTree = "<group>"; };
 		202417CA229D5E0B00E38F84 /* CMSampleBufferExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CMSampleBufferExtension.swift; sourceTree = "<group>"; };
+		20400D22229F74C500056267 /* MovieRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieRecorder.swift; sourceTree = "<group>"; };
+		20400D24229F756500056267 /* MovieTrackDataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieTrackDataProvider.swift; sourceTree = "<group>"; };
+		20400D26229FB00200056267 /* AudioCaptureSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCaptureSession.swift; sourceTree = "<group>"; };
+		20400D4C229FE40700056267 /* CVPixelBufferExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CVPixelBufferExtension.swift; sourceTree = "<group>"; };
 		2048636322963192002A8781 /* MovieRecorder.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MovieRecorder.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		2048636622963192002A8781 /* MovieRecorder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MovieRecorder.h; sourceTree = "<group>"; };
 		2048636722963192002A8781 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -37,11 +41,7 @@
 		20486372229669C1002A8781 /* EncodingSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncodingSettings.swift; sourceTree = "<group>"; };
 		2048637422967747002A8781 /* Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helpers.swift; sourceTree = "<group>"; };
 		204863762296947C002A8781 /* MovieWriter+Internal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MovieWriter+Internal.swift"; sourceTree = "<group>"; };
-		20B26E0322979731008F382E /* BufferProducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BufferProducer.swift; sourceTree = "<group>"; };
-		20B26E0822979C80008F382E /* SystemAudioVideoProducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAudioVideoProducer.swift; sourceTree = "<group>"; };
-		20B26E0C2297D0CE008F382E /* SystemCameraRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCameraRecorder.swift; sourceTree = "<group>"; };
-		20B26E0E2297D63D008F382E /* SceneViewRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneViewRecorder.swift; sourceTree = "<group>"; };
-		20B26E122297EC90008F382E /* Recordable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recordable.swift; sourceTree = "<group>"; };
+		20B26E0822979C80008F382E /* AVCameraTrackDataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVCameraTrackDataProvider.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,6 +61,7 @@
 				2048637422967747002A8781 /* Helpers.swift */,
 				202417C7229D157F00E38F84 /* InternalErrors.swift */,
 				202417CA229D5E0B00E38F84 /* CMSampleBufferExtension.swift */,
+				20400D4C229FE40700056267 /* CVPixelBufferExtension.swift */,
 			);
 			name = Helpers;
 			sourceTree = "<group>";
@@ -84,8 +85,9 @@
 		2048636C229631E8002A8781 /* Source */ = {
 			isa = PBXGroup;
 			children = (
-				20B26E0722979768008F382E /* Producer */,
-				20B26E02229796A3008F382E /* Recorder */,
+				20400D22229F74C500056267 /* MovieRecorder.swift */,
+				20400D24229F756500056267 /* MovieTrackDataProvider.swift */,
+				20B26E0722979768008F382E /* TrackDataProvider */,
 				20B26E012297966D008F382E /* MovieWriter */,
 				202417C9229D5DD500E38F84 /* Helpers */,
 				20486372229669C1002A8781 /* EncodingSettings.swift */,
@@ -114,24 +116,14 @@
 			name = MovieWriter;
 			sourceTree = "<group>";
 		};
-		20B26E02229796A3008F382E /* Recorder */ = {
+		20B26E0722979768008F382E /* TrackDataProvider */ = {
 			isa = PBXGroup;
 			children = (
-				20B26E0C2297D0CE008F382E /* SystemCameraRecorder.swift */,
-				20B26E0E2297D63D008F382E /* SceneViewRecorder.swift */,
-				20B26E122297EC90008F382E /* Recordable.swift */,
+				20400D26229FB00200056267 /* AudioCaptureSession.swift */,
+				20B26E0822979C80008F382E /* AVCameraTrackDataProvider.swift */,
+				202417C3229D0CD900E38F84 /* SCNViewTrackDataProvider.swift */,
 			);
-			name = Recorder;
-			sourceTree = "<group>";
-		};
-		20B26E0722979768008F382E /* Producer */ = {
-			isa = PBXGroup;
-			children = (
-				20B26E0322979731008F382E /* BufferProducer.swift */,
-				20B26E0822979C80008F382E /* SystemAudioVideoProducer.swift */,
-				202417C3229D0CD900E38F84 /* SceneViewProducer.swift */,
-			);
-			name = Producer;
+			name = TrackDataProvider;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -213,19 +205,19 @@
 			buildActionMask = 2147483647;
 			files = (
 				2048636F2296323B002A8781 /* MovieWriter.swift in Sources */,
-				20B26E0D2297D0CE008F382E /* SystemCameraRecorder.swift in Sources */,
-				20B26E132297EC90008F382E /* Recordable.swift in Sources */,
-				20B26E0922979C80008F382E /* SystemAudioVideoProducer.swift in Sources */,
+				20400D25229F756500056267 /* MovieTrackDataProvider.swift in Sources */,
+				20B26E0922979C80008F382E /* AVCameraTrackDataProvider.swift in Sources */,
 				20486373229669C1002A8781 /* EncodingSettings.swift in Sources */,
-				20B26E0422979731008F382E /* BufferProducer.swift in Sources */,
 				2048637122963E3B002A8781 /* Bitrate.swift in Sources */,
 				2048637522967747002A8781 /* Helpers.swift in Sources */,
 				202417C8229D157F00E38F84 /* InternalErrors.swift in Sources */,
-				202417C4229D0CD900E38F84 /* SceneViewProducer.swift in Sources */,
+				20400D27229FB00200056267 /* AudioCaptureSession.swift in Sources */,
+				20400D4D229FE40700056267 /* CVPixelBufferExtension.swift in Sources */,
+				202417C4229D0CD900E38F84 /* SCNViewTrackDataProvider.swift in Sources */,
 				204863772296947C002A8781 /* MovieWriter+Internal.swift in Sources */,
 				202417CB229D5E0B00E38F84 /* CMSampleBufferExtension.swift in Sources */,
 				202417C6229D126D00E38F84 /* PixelBufferPool.swift in Sources */,
-				20B26E0F2297D63D008F382E /* SceneViewRecorder.swift in Sources */,
+				20400D23229F74C500056267 /* MovieRecorder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -286,7 +278,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEFINES_MODULE = YES;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 77879KDM34;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
@@ -369,7 +361,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEFINES_MODULE = YES;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 77879KDM34;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";

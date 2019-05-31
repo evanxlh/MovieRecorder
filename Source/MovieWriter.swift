@@ -9,8 +9,7 @@ import AVFoundation
 
  protocol MovieWriterDelegate: class {
     func movieWriterDidStart(_ writer: MovieWriter)
-    func movieWriterDidStop(_ writer: MovieWriter, movieOutputURL: URL)
-    func movieWriterDidCancel(_ writer: MovieWriter)
+    func movieWriterDidFinish(_ writer: MovieWriter, movieOutputURL: URL)
     func movieWriterDidFail(_ writer: MovieWriter, error: MovieWriter.Error)
 }
 
@@ -39,15 +38,18 @@ import AVFoundation
     fileprivate var audioWriterInput: AVAssetWriterInput?
     fileprivate var videoWriterInput: AVAssetWriterInput?
     
-    fileprivate var audioSettings: AudioEncodingSettings?
-    fileprivate var videoSettings: VideoEncodingSettings?
+    fileprivate var audioSettings: [String: Any]?
+    fileprivate var audioSourceFormat: CMAudioFormatDescription?
+    
+    fileprivate var videoSettings: [String: Any]?
+    fileprivate var videoSourceFormat: CMVideoFormatDescription?
     fileprivate var videoTransform: CGAffineTransform?
     
     fileprivate var locker = MutexLock()
     fileprivate var writeQueue = DispatchQueue(label: "MovieRecorder.WriteQueue")
-    fileprivate var delegateQueue: DispatchQueue
+    fileprivate var delegateQueue: DispatchQueue?
     
-    fileprivate var state = State.stopped
+    fileprivate var state = State.idle
     fileprivate var sessionStarted = false
     
     fileprivate var isSessionStarted: Bool {
@@ -62,7 +64,7 @@ import AVFoundation
         return state
     }
     
-    //MARK: -
+    //MARK: - APIs
     
      enum Error: Swift.Error {
         case unsupportedTrackEncodingSettings([String: Any])
@@ -79,9 +81,9 @@ import AVFoundation
 
     /**
      Init with movie file saved url, movie file container type and delegate callback queue.
-     Delegate will be invoked on the main thread default if no callback queue is specified.
+     Delegate will be invoked on the internal queue if no callback queue specified.
      */
-     init(outputURL: URL, fileType: MovieFileType = .mp4, delegateCallbackQueue: DispatchQueue = .main) {
+     init(outputURL: URL, fileType: MovieFileType = .mp4, delegateCallbackQueue: DispatchQueue? = nil) {
         self.outputURL = outputURL
         self.fileType = fileType
         self.delegateQueue = delegateCallbackQueue
@@ -89,124 +91,106 @@ import AVFoundation
     
     //MARK: - Configurate Audio/Video Tracks
     
-     func addAudioTrack(encodingSettings: AudioEncodingSettings) {
-        locker.lock()
-        defer { locker.unlock() }
-        
-        guard state == .stopped || state == .failed else {
-            fatalError("Please add audio track before writer starting.")
+    /**
+     Add audio track for appending audio sample buffer. If the given encodingSettings settings is nil,
+     movie writer will compute the encoding settings based audio source format.
+     
+     Make sure add audio track before movie writer starting.
+     */
+    func addAudioTrack(sourceFormat: CMAudioFormatDescription, encodingSettings: [String: Any]? = nil) {
+        guard transitionToState(.idle) else {
+            fatalError("Can not add audio track in current state.")
         }
-        self.state = .stopped
+        self.audioSourceFormat = sourceFormat
         self.audioSettings = encodingSettings
     }
     
-     func addVideoTrack(encodingSettings: VideoEncodingSettings, transform: CGAffineTransform? = nil) {
-        locker.lock()
-        defer { locker.unlock() }
-        
-        guard state == .stopped || state == .failed else {
-            fatalError("Please add video track before writer starting.")
+    /**
+     Add video track for appending video frame buffer. If the given encodingSettings settings is nil,
+     movie writer will compute the encoding settings based video source format.
+     
+     Make sure add video track before movie writer starting.
+     */
+    func addVideoTrack(sourceFormat: CMVideoFormatDescription, encodingSettings: [String: Any]? = nil, transform: CGAffineTransform? = nil) {
+        guard transitionToState(.idle) else {
+            fatalError("Can not add video track in current state.")
         }
-        self.state = .stopped
+        self.videoSourceFormat = sourceFormat
         self.videoSettings = encodingSettings
         self.videoTransform = transform
     }
-}
-
-extension MovieWriter {
     
-    //MARK: - MovieWriter Control
+    //MARK: - Start/Finish
     
     /**
      Start movie writer asynchronously.
      When start successfully, `movieWriterDidStart` delegate function will be invoked.
      If failed, `movieWriterDidFail` delegate function will be invoked.
      */
-     func start() {
+     func startWriting() {
         locker.lock()
-        if audioSettings == nil && videoSettings == nil {
-            fatalError("No track added, please add audio/video tracks before writer starting.")
+        if audioSourceFormat == nil && videoSourceFormat == nil {
+            fatalError("No media track added, please add audio/video tracks before writer starting.")
         }
         locker.unlock()
         
         guard transitionToState(.starting) else {
-            fatalError("Can not start movie writer in current state: \(state.description)")
+            print("Can not start movie writer in current state: \(state.description)")
+            return
         }
         
-        writeQueue.async { [weak self] in
+        self.writeQueue.async { [weak self] in
             self?.prepareWriter()
         }
     }
     
-     func stop() {
-        guard transitionToState(.stoppingPhase1) else {
-            print("[Warning]: Can not stop movie writer in current state: \(state.description)")
+    /**
+     Finish writing asychronously, prevent any more sample data appending.
+     */
+    func finishWriting() {
+        guard transitionToState(.finishingPhase1) else {
+            print("Can not stop movie writer in current state: \(state.description)")
             return
         }
         
-        writeQueue.async { [weak self] in
-            guard let strongSelf = self else { return }
+        writeQueue.async {
             
             // Maybe movie writer enters `stopped` state. In that case, just return.
-            guard strongSelf.syncedState == .stoppingPhase1 else { return }
+            guard self.syncedState == .finishingPhase1 else { return }
             
             // It is not safe to call `finishWriting` concurrently with `appendSampleBuffer`, so we transition to
-            // `stoppingPhase2` while on writingQueue, which guarantees that no more buffers will be appended.
-            strongSelf.transitionToState(.stoppingPhase2)
+            // `finishingPhase2` while on writingQueue, which guarantees that no more buffers will be appended.
+            self.transitionToState(.finishingPhase2)
             
-            strongSelf.assetWriter!.finishWriting {
-                if let error = strongSelf.assetWriter!.error as NSError? {
-                    strongSelf.transitionToState(.failed, error: Error.underlyingError(error))
+            self.assetWriter!.finishWriting {
+                if let error = self.assetWriter!.error as NSError? {
+                    self.transitionToState(.failed, error: Error.underlyingError(error))
                 } else {
-                    strongSelf.transitionToState(.stopped)
+                    self.transitionToState(.finished)
                 }
             }
-        }
-    }
-    
-     func cancel() {
-        
-        guard transitionToState(.cancelling) else {
-            print("[Warning]: Movie writer is not writing, no need cancelling.")
-            return
-        }
-        
-        writeQueue.async { [weak self] in
-            guard let strongSelf = self else { return }
-            guard strongSelf.syncedState == .cancelling else { return }
-            
-            self?.assetWriter?.cancelWriting()
-            strongSelf.transitionToState(.stopped)
         }
     }
     
     //MARK: - Write Audio/Video SampleBuffer
     
      func append(audioSampleBuffer: CMSampleBuffer) {
-        validateVideoSampleBufferAppendOperation()
+        guard canAppendAudioFrameBuffer() else { return }
         append(sampleBuffer: audioSampleBuffer, track: .audio)
     }
     
      func append(videoSampleBuffer: CMSampleBuffer) {
-        validateVideoSampleBufferAppendOperation()
+        guard canAppendVideoFrameBuffer() else { return }
         append(sampleBuffer: videoSampleBuffer, track: .video)
     }
     
      func append(videoPixelBuffer: CVPixelBuffer, presentationTime: CMTime) {
-        validateVideoSampleBufferAppendOperation()
+        guard canAppendVideoFrameBuffer() else { return }
         
         var sampleBuffer: CMSampleBuffer?
-        var videoFD: CMVideoFormatDescription?
         var timingInfo = CMSampleTimingInfo(duration: .invalid, presentationTimeStamp: presentationTime, decodeTimeStamp: .invalid)
         
-        var errorCode = CMVideoFormatDescriptionCreateForImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: videoPixelBuffer,
-                                                                     formatDescriptionOut: &videoFD)
-        if videoFD == nil {
-            fatalError("Create video format description failed: \(errorCode)")
-        }
-        
-        errorCode = CMSampleBufferCreateForImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: videoPixelBuffer, dataReady: true,
-                                                       makeDataReadyCallback: nil, refcon: nil, formatDescription: videoFD!, sampleTiming: &timingInfo, sampleBufferOut: &sampleBuffer)
+        let errorCode = CMSampleBufferCreateForImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: videoPixelBuffer, dataReady: true, makeDataReadyCallback: nil, refcon: nil, formatDescription: videoSourceFormat!, sampleTiming: &timingInfo, sampleBufferOut: &sampleBuffer)
         if sampleBuffer == nil {
             fatalError("Create video sample buffer failed: \(errorCode)")
         }
@@ -231,7 +215,11 @@ fileprivate extension MovieWriter {
         if state != newState {
             state = newState
             
-            delegateQueue.async {
+            var queue = delegateQueue
+            if queue == nil {
+                queue = writeQueue
+            }
+            queue!.async {
                 self.handleCallbackDelegate(state: newState, error: error)
             }
         }
@@ -241,15 +229,12 @@ fileprivate extension MovieWriter {
     
     func handleCallbackDelegate(state: State, error: Error?) {
         switch state {
-        case .cancelled:
-            writeQueue.async { self.cleanAll() }
-            delegate?.movieWriterDidCancel(self)
         case .failed:
             writeQueue.async { self.cleanAll() }
             delegate?.movieWriterDidFail(self, error: error!)
-        case .stopped:
+        case .finished:
             writeQueue.async { self.tearDownWriter() }
-            delegate?.movieWriterDidStop(self, movieOutputURL: outputURL)
+            delegate?.movieWriterDidFinish(self, movieOutputURL: outputURL)
         case .writing:
             delegate?.movieWriterDidStart(self)
         default:
@@ -265,10 +250,10 @@ fileprivate extension MovieWriter {
             if metadata != nil {
                 assetWriter!.metadata = metadata!
             }
-            if audioSettings != nil {
+            if audioSourceFormat != nil {
                 try setupAudioInput()
             }
-            if videoSettings != nil {
+            if videoSourceFormat != nil {
                 try setupVideoInput()
             }
             
@@ -285,24 +270,43 @@ fileprivate extension MovieWriter {
     
     func setupAudioInput() throws {
         
-        let rawSettings = audioSettings!.toParams()
-        guard assetWriter!.canApply(outputSettings: rawSettings, forMediaType: .audio) else {
-            throw Error.unsupportedTrackEncodingSettings(rawSettings)
+        if audioSettings == nil {
+            audioSettings = [AVFormatIDKey: kAudioFormatMPEG4AAC] as [String: Any]
         }
         
-        audioWriterInput = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings!.toParams())
+        guard assetWriter!.canApply(outputSettings: audioSettings, forMediaType: .audio) else {
+            throw Error.unsupportedTrackEncodingSettings(audioSettings!)
+        }
+        
+        audioWriterInput = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings, sourceFormatHint: audioSourceFormat)
         audioWriterInput!.expectsMediaDataInRealTime = true
         assetWriter!.add(audioWriterInput!)
     }
     
     func setupVideoInput() throws {
         
-        let rawSettings = videoSettings!.toParams()
-        guard assetWriter!.canApply(outputSettings: rawSettings, forMediaType: .video) else {
-            throw Error.unsupportedTrackEncodingSettings(rawSettings)
+        if videoSettings == nil {
+            let dimension = CMVideoFormatDescriptionGetDimensions(videoSourceFormat!)
+            let compressionProperties = [
+                AVVideoAverageBitRateKey: Float(dimension.width * dimension.height) * 10.1,
+                AVVideoExpectedSourceFrameRateKey: 30,
+                AVVideoMaxKeyFrameIntervalKey: 30,
+                AVVideoProfileLevelKey: AVVideoProfileLevelH264BaselineAutoLevel
+                ] as [String : Any]
+            
+            videoSettings =  [
+                AVVideoCodecKey: AVVideoCodecH264,
+                AVVideoWidthKey: dimension.width,
+                AVVideoHeightKey: dimension.height,
+                AVVideoCompressionPropertiesKey : compressionProperties
+            ]
         }
         
-        videoWriterInput = AVAssetWriterInput(mediaType: .video, outputSettings: rawSettings)
+        guard assetWriter!.canApply(outputSettings: videoSettings, forMediaType: .video) else {
+            throw Error.unsupportedTrackEncodingSettings(videoSettings!)
+        }
+        
+        videoWriterInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings, sourceFormatHint: videoSourceFormat)
         videoWriterInput!.expectsMediaDataInRealTime = true
         if videoTransform != nil {
             videoWriterInput!.transform = videoTransform!
@@ -310,13 +314,20 @@ fileprivate extension MovieWriter {
         assetWriter!.add(videoWriterInput!)
     }
     
-    func validateVideoSampleBufferAppendOperation() {
-        guard syncedState == .writing else {
-            fatalError("Can not append video sample buffer in current state: \(state).")
-        }
-        guard videoSettings != nil else {
+    func canAppendAudioFrameBuffer() -> Bool {
+        guard syncedState == .writing else { return false }
+        guard audioSourceFormat != nil else {
             fatalError("No video track added.")
         }
+        return true
+    }
+    
+    func canAppendVideoFrameBuffer() -> Bool {
+        guard syncedState == .writing else { return false }
+        guard videoSourceFormat != nil else {
+            fatalError("No video track added.")
+        }
+        return true
     }
     
     func append(sampleBuffer: CMSampleBuffer, track: Track) {
@@ -332,6 +343,8 @@ fileprivate extension MovieWriter {
                 self.assetWriter!.startSession(atSourceTime: CMSampleBufferGetPresentationTimeStamp(sampleBuffer))
                 self.sessionStarted = true
             }
+            
+            guard self.sessionStarted else { return }
             
             let input: AVAssetWriterInput
             if track == .video {

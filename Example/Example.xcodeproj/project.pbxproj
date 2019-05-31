@@ -7,9 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		20404A9A229E1EB8001D10E1 /* SCNGameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20404A98229E1EB8001D10E1 /* SCNGameViewController.swift */; };
+		20404A9B229E1EB8001D10E1 /* art.scnassets in Resources */ = {isa = PBXBuildFile; fileRef = 20404A99229E1EB8001D10E1 /* art.scnassets */; };
 		20B26E212297FF66008F382E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B26E202297FF66008F382E /* AppDelegate.swift */; };
 		20B26E242297FF66008F382E /* Renderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B26E232297FF66008F382E /* Renderer.swift */; };
-		20B26E262297FF66008F382E /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B26E252297FF66008F382E /* GameViewController.swift */; };
+		20B26E262297FF66008F382E /* MetalGameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B26E252297FF66008F382E /* MetalGameViewController.swift */; };
 		20B26E282297FF66008F382E /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 20B26E272297FF66008F382E /* Shaders.metal */; };
 		20B26E2B2297FF66008F382E /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 20B26E292297FF66008F382E /* Main.storyboard */; };
 		20B26E2D2297FF67008F382E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 20B26E2C2297FF67008F382E /* Assets.xcassets */; };
@@ -33,11 +35,13 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		20404A98229E1EB8001D10E1 /* SCNGameViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCNGameViewController.swift; sourceTree = "<group>"; };
+		20404A99229E1EB8001D10E1 /* art.scnassets */ = {isa = PBXFileReference; lastKnownFileType = wrapper.scnassets; path = art.scnassets; sourceTree = "<group>"; };
 		20B26E1D2297FF66008F382E /* Example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Example.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		20B26E202297FF66008F382E /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		20B26E222297FF66008F382E /* ShaderTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderTypes.h; sourceTree = "<group>"; };
 		20B26E232297FF66008F382E /* Renderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renderer.swift; sourceTree = "<group>"; };
-		20B26E252297FF66008F382E /* GameViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewController.swift; sourceTree = "<group>"; };
+		20B26E252297FF66008F382E /* MetalGameViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalGameViewController.swift; sourceTree = "<group>"; };
 		20B26E272297FF66008F382E /* Shaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
 		20B26E2A2297FF66008F382E /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		20B26E2C2297FF67008F382E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -81,11 +85,13 @@
 				20B26E202297FF66008F382E /* AppDelegate.swift */,
 				20B26E222297FF66008F382E /* ShaderTypes.h */,
 				20B26E232297FF66008F382E /* Renderer.swift */,
-				20B26E252297FF66008F382E /* GameViewController.swift */,
 				20B26E272297FF66008F382E /* Shaders.metal */,
+				20B26E252297FF66008F382E /* MetalGameViewController.swift */,
+				20404A98229E1EB8001D10E1 /* SCNGameViewController.swift */,
 				20B26E292297FF66008F382E /* Main.storyboard */,
-				20B26E2C2297FF67008F382E /* Assets.xcassets */,
 				20B26E2E2297FF67008F382E /* LaunchScreen.storyboard */,
+				20404A99229E1EB8001D10E1 /* art.scnassets */,
+				20B26E2C2297FF67008F382E /* Assets.xcassets */,
 				20B26E312297FF67008F382E /* Info.plist */,
 			);
 			path = Example;
@@ -150,6 +156,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				20B26E302297FF67008F382E /* LaunchScreen.storyboard in Resources */,
+				20404A9B229E1EB8001D10E1 /* art.scnassets in Resources */,
 				20B26E2D2297FF67008F382E /* Assets.xcassets in Resources */,
 				20B26E2B2297FF66008F382E /* Main.storyboard in Resources */,
 			);
@@ -164,7 +171,8 @@
 			files = (
 				20B26E282297FF66008F382E /* Shaders.metal in Sources */,
 				20B26E242297FF66008F382E /* Renderer.swift in Sources */,
-				20B26E262297FF66008F382E /* GameViewController.swift in Sources */,
+				20404A9A229E1EB8001D10E1 /* SCNGameViewController.swift in Sources */,
+				20B26E262297FF66008F382E /* MetalGameViewController.swift in Sources */,
 				20B26E212297FF66008F382E /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -314,7 +322,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 77879KDM34;
 				INFOPLIST_FILE = Example/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -334,7 +342,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 77879KDM34;
 				INFOPLIST_FILE = Example/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

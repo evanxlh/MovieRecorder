@@ -14,22 +14,33 @@ import CoreVideo
  */
 public struct AudioEncodingSettings {
     
-    public static let `default` = AudioEncodingSettings(sampleRate: 41000)
+    public static let lowest = AudioEncodingSettings(bitrate: .audio32k)
+    public static let low = AudioEncodingSettings(bitrate: .audio96k)
+    public static let medium = AudioEncodingSettings(bitrate: .audio128k)
+    public static let high = AudioEncodingSettings(bitrate: .audio192k)
+    public static let highest = AudioEncodingSettings(bitrate: .audio256k)
     
     /// Audio sample rate in hz.
     public var sampleRate: Float
     public var bitrate: Bitrate
     
-    public init(sampleRate: Float, bitrate: Bitrate = Bitrate.audio128k) {
+    public init(sampleRate: Float = 44100, bitrate: Bitrate = Bitrate.audio128k) {
         self.sampleRate = sampleRate
         self.bitrate = bitrate
     }
     
     public func toParams() -> [String: Any] {
+        
+        var layout = AudioChannelLayout()
+        layout.mChannelLayoutTag = kAudioChannelLayoutTag_Mono
+        let data = Data(bytes: &layout, count: MemoryLayout<AudioChannelLayout>.size)
+        
         return [
             AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+            AVNumberOfChannelsKey: 1,
             AVSampleRateKey: sampleRate,
-            AVEncoderBitRateKey: bitrate.rawValue
+            AVEncoderBitRateKey: bitrate.rawValue,
+            AVChannelLayoutKey: data
         ]
     }
 }
@@ -51,11 +62,18 @@ public struct VideoEncodingSettings {
     
     public var bitrate: Bitrate
     
-    public init(width: Int, height: Int, framerate: Int, bitsPerPixel: BitsPerPixel) {
+    public init(width: Int, height: Int, framerate: Int, bitrate: Bitrate) {
         self.width = width
         self.height = height
         self.framerate = framerate
-        self.bitrate = Bitrate(videoWidth: width, videoHeight: height, bitsPerPixel: bitsPerPixel)
+        self.bitrate = bitrate
+    }
+    
+    public init(width: Int, height: Int, framerate: Int, quality: Quality = .medium) {
+        self.width = width
+        self.height = height
+        self.framerate = framerate
+        self.bitrate = Bitrate(videoWidth: width, videoHeight: height, quality: quality)
     }
     
     func toParams() -> [String: Any] {

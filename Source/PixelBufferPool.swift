@@ -109,7 +109,7 @@ fileprivate extension PixelBufferPool {
     func createPool(pixelBufferAttrs: CFDictionary, bufferCount: Int) throws -> CVPixelBufferPool {
         var pool: CVPixelBufferPool? = nil
         let poolAttrs = [ kCVPixelBufferPoolMinimumBufferCountKey:  bufferCount ] as CFDictionary
-        let result = CVPixelBufferPoolCreate(kCFAllocatorDefault, poolAttrs, pixelBufferAttrs as CFDictionary, &pool)
+        let result = CVPixelBufferPoolCreate(kCFAllocatorDefault, poolAttrs, pixelBufferAttrs, &pool)
         guard result == kCVReturnSuccess else {
             throw CoreVideoError.failure(CVReturnValue(result))
         }
@@ -122,11 +122,12 @@ fileprivate extension PixelBufferPool {
         
         for _ in 0..<bufferCount {
             var pixelBuffer: CVPixelBuffer? = nil
-            if CVPixelBufferPoolCreatePixelBufferWithAuxAttributes(kCFAllocatorDefault, pool, auxAttris, &pixelBuffer) == kCVReturnSuccess {
-                pixelBuffers.append(pixelBuffer!)
-            } else {
-                print("PixelBufferPool preallocate pixel buffer failed.")
+            let result = CVPixelBufferPoolCreatePixelBufferWithAuxAttributes(kCFAllocatorDefault, pool, auxAttris, &pixelBuffer)
+            guard result == kCVReturnSuccess else {
+                print("PixelBufferPool preallocate pixel buffer failed: \(CVReturnValue(result).description)")
+                break
             }
+            pixelBuffers.append(pixelBuffer!)
         }
         pixelBuffers.removeAll()
     }

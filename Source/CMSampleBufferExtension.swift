@@ -9,12 +9,12 @@ import CoreMedia
 
 internal extension CMSampleBuffer {
     
-    func modifyTimeInfo(_ newTimestamp: CMTime) throws -> CMSampleBuffer {
+    func adjustTimeInfo(_ newTimestamp: CMTime) throws -> CMSampleBuffer {
         
         var itemCount: CMItemCount = 0
-        var timingInfo = Array<CMSampleTimingInfo>(repeating: CMSampleTimingInfo(), count: 3)
+        CMSampleBufferGetSampleTimingInfoArray(self, entryCount: 0, arrayToFill: nil, entriesNeededOut: &itemCount)
+        var timingInfo = [CMSampleTimingInfo](repeating: CMSampleTimingInfo(), count: itemCount)
         
-        CMSampleBufferGetSampleTimingInfoArray(self, entryCount: 3, arrayToFill: &timingInfo, entriesNeededOut: &itemCount)
         for index in 0..<itemCount {
             timingInfo[index].decodeTimeStamp = newTimestamp
             timingInfo[index].presentationTimeStamp = newTimestamp

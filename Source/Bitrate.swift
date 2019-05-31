@@ -16,27 +16,63 @@ public enum Quality: Int {
 }
 
 public enum BitsPerPixel: Equatable {
+    case lowest
     case low
     case medium
     case high
+    case highest
     case custom(Float)
     
     public var rawValue: Float {
         switch self {
+        case .lowest:
+            return 0.8
         case .low:
             return 1.5
         case .medium:
             return 4.3
         case .high:
             return 7.1
+        case .highest:
+            return 10.1
         case .custom(let bits):
             return bits
         }
     }
     
+    public init(quality: Quality) {
+        switch quality {
+        case .lowest:
+            self = .lowest
+        case .low:
+            self = .low
+        case .medium:
+            self = .medium
+        case .high:
+            self = .high
+        case .highest:
+            self = .highest
+        }
+    }
+    
+    public static func bitsPerPixel(by quality: Quality) -> BitsPerPixel {
+        switch quality {
+        case .lowest:
+            return .lowest
+        case .low:
+            return .low
+        case .medium:
+            return .medium
+        case .high:
+            return .high
+        case .highest:
+            return .highest
+        }
+    }
+    
     public static func == (lhs: BitsPerPixel, rhs: BitsPerPixel) -> Bool {
         switch (lhs, rhs) {
-        case (.low, .low), (.medium, .medium), (.high, .high):
+        case (.lowest, .lowest), (.low, .low), (.medium, .medium), (.high, .high), (.highest, .highest):
             return true
         case let (.custom(l), .custom(r)):
             return l == r
@@ -61,6 +97,10 @@ public struct Bitrate: Equatable {
     /// Init bitrate from video size and
     public init(videoWidth: Int,  videoHeight: Int, bitsPerPixel: BitsPerPixel) {
         rawValue = Float(videoWidth * videoHeight) * bitsPerPixel.rawValue
+    }
+    
+    public init(videoWidth: Int,  videoHeight: Int, quality: Quality) {
+        rawValue = Float(videoWidth * videoHeight) * BitsPerPixel(quality: quality).rawValue
     }
     
     public static func == (lhs: Bitrate, rhs: Bitrate) -> Bool {

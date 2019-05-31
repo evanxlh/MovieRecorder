@@ -15,17 +15,16 @@ internal extension MovieWriter {
     }
     
     enum State: Int, CustomStringConvertible {
+        case idle
         case starting
         case writing
-        case stoppingPhase1
-        case stoppingPhase2
-        case stopped
-        case cancelling
-        case cancelled
+        case finishingPhase1
+        case finishingPhase2
+        case finished
         case failed
         
         var description: String {
-            return ["starting", "writing", "stoppingPhase1", "stoppingPhase2", "stopped", "cancelling", "cancelled", "failed"][rawValue]
+            return ["starting", "writing", "finishingPhase1", "finishingPhase2", "finished", "failed"][rawValue]
         }
         
         func canTransitionToState(_ newState: State) -> Bool {
@@ -36,23 +35,26 @@ internal extension MovieWriter {
         
         private var transitableStates: [State] {
             switch self {
+            case .idle:
+                return idleTransitableStates
             case .starting:
                 return startingTransitableStates
             case .writing:
                 return writingTransitableStates
-            case .stoppingPhase1:
-                return stoppingPhase1TransitableStates
-            case .stoppingPhase2:
-                return stoppingPhase2TransitableStates
-            case .stopped:
-                return stoppedTransitableStates
-            case .cancelling:
-                return cancellingTransitableStates
-            case .cancelled:
-                return cancelledTransitableStates
+            case .finishingPhase1:
+                return finishingPhase1TransitableStates
+            case .finishingPhase2:
+                return finishingPhase2TransitableStates
+            case .finished:
+                return finishedTransitableStates
             case .failed:
                 return failedTransitableStates
             }
+        }
+        
+        /// Idle start can transition to itself, just means keeping the idle state.
+        private var idleTransitableStates: [State] {
+            return [.idle, .starting]
         }
         
         private var startingTransitableStates: [State] {
@@ -60,31 +62,23 @@ internal extension MovieWriter {
         }
         
         private var writingTransitableStates: [State] {
-            return [.cancelling, .stoppingPhase1, .failed]
+            return [.finishingPhase1, .failed]
         }
         
-        private var stoppingPhase1TransitableStates: [State] {
-            return [.stoppingPhase2]
+        private var finishingPhase1TransitableStates: [State] {
+            return [.finishingPhase2]
         }
         
-        private var stoppingPhase2TransitableStates: [State] {
-            return [.stopped, .failed]
+        private var finishingPhase2TransitableStates: [State] {
+            return [.finished, .failed]
         }
         
-        private var stoppedTransitableStates: [State] {
-            return [.starting]
-        }
-        
-        private var cancellingTransitableStates: [State] {
-            return [.cancelled]
-        }
-        
-        private var cancelledTransitableStates: [State] {
-            return [.stopped]
+        private var finishedTransitableStates: [State] {
+            return [.idle, .starting]
         }
         
         private var failedTransitableStates: [State] {
-            return [.stopped]
+            return [.idle, .starting]
         }
     }
     

@@ -9,7 +9,7 @@ import CoreVideo
 
 internal extension Int32 {
     
-     var fourCharacterCodeString: String {
+     var fourCharCodeString: String {
         let utf16 = [
             UInt16((self >> 24) & 0xFF),
             UInt16((self >> 16) & 0xFF),
@@ -21,20 +21,20 @@ internal extension Int32 {
 }
 
 /**
- The error code wrapper for the return value of an operation in `CoreVideo.framework`.
+ The `CVReturn` error code wrapper.
  
- For `CVReturn`, `OSStatus`, you can find the error code detail meaning from
+ You can find the detail meaning of `CVReturn` from:
  [Apple Error Codes Lookup](https://www.osstatus.com).
  */
-internal struct CVReturnValue: Equatable {
+internal struct CVReturnValue: CustomStringConvertible, Equatable {
     let value: CVReturn
     
     init(_ value: CVReturn) {
         self.value = value
     }
     
-    var fourCharacterCodeString: String {
-        return value.fourCharacterCodeString
+    var fourCharCodeString: String {
+        return value.fourCharCodeString
     }
     
     var description: String {
@@ -62,21 +62,51 @@ internal struct CVReturnValue: Equatable {
         case kCVReturnRetry:
             return  "\(value): A scan hasn't completely traversed the CVBufferPool due to a concurrent operation. The client can retry the scan."
         default:
-            return "\(value): \(fourCharacterCodeString))"
+            return "\(value): \(fourCharCodeString))"
         }
+    }
+    
+    static func == (lhs: CVReturnValue, rhs: CVReturnValue) -> Bool {
+        return lhs.value == rhs.value
+    }
+    
+    static func != (lhs: CVReturnValue, rhs: CVReturnValue) -> Bool {
+        return lhs.value != rhs.value
     }
 }
 
-internal struct OSStatusValue: Equatable {
+/**
+ The `OSStatus` error code wrapper.
+ 
+ You can find the detail meaning of `OSStatus` from:
+ [Apple Error Codes Lookup](https://www.osstatus.com).
+ */
+internal struct OSStatusValue: CustomStringConvertible, Equatable {
+    
     let value: OSStatus
+    
+    var fourCharCodeString: String {
+        return value.fourCharCodeString
+    }
+    
+    var description: String {
+        switch value {
+        default:
+            return "\(value): \(fourCharCodeString))"
+        }
+    }
     
     init(_ value: OSStatus) {
         self.value = value
     }
-    var fourCharacterCodeString: String {
-        return value.fourCharacterCodeString
+    
+    static func == (lhs: OSStatusValue, rhs: OSStatusValue) -> Bool {
+        return lhs.value == rhs.value
     }
     
+    static func != (lhs: OSStatusValue, rhs: OSStatusValue) -> Bool {
+        return lhs.value != rhs.value
+    }
 }
 
 internal enum CoreVideoError: Error {
