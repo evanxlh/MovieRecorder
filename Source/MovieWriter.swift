@@ -257,6 +257,9 @@ fileprivate extension MovieWriter {
                 try setupVideoInput()
             }
             
+            // Although I run it on the global queue, startWriting still let video preview stuck for a short time.
+            // I asked help for Apple code-level support, still wait Apple feedback.
+            // https://stackoverflow.com/questions/54820185/avassetwriter-momentary-lag-when-starting-write
             guard assetWriter!.startWriting() else {
                 throw assetWriter!.error! as NSError
             }
