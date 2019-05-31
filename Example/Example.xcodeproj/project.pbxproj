@@ -9,6 +9,10 @@
 /* Begin PBXBuildFile section */
 		20404A9A229E1EB8001D10E1 /* SCNGameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20404A98229E1EB8001D10E1 /* SCNGameViewController.swift */; };
 		20404A9B229E1EB8001D10E1 /* art.scnassets in Resources */ = {isa = PBXBuildFile; fileRef = 20404A99229E1EB8001D10E1 /* art.scnassets */; };
+		204F8B5922A124A800DE9F42 /* CameraViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 204F8B5822A124A800DE9F42 /* CameraViewController.swift */; };
+		204F8B5D22A1256400DE9F42 /* RecorderViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 204F8B5C22A1256400DE9F42 /* RecorderViewController.swift */; };
+		204F8B5F22A127AA00DE9F42 /* PreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 204F8B5E22A127AA00DE9F42 /* PreviewView.swift */; };
+		204F8B6122A12FEF00DE9F42 /* DesignableViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 204F8B6022A12FEF00DE9F42 /* DesignableViews.swift */; };
 		20B26E212297FF66008F382E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B26E202297FF66008F382E /* AppDelegate.swift */; };
 		20B26E242297FF66008F382E /* Renderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B26E232297FF66008F382E /* Renderer.swift */; };
 		20B26E262297FF66008F382E /* MetalGameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B26E252297FF66008F382E /* MetalGameViewController.swift */; };
@@ -37,6 +41,10 @@
 /* Begin PBXFileReference section */
 		20404A98229E1EB8001D10E1 /* SCNGameViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCNGameViewController.swift; sourceTree = "<group>"; };
 		20404A99229E1EB8001D10E1 /* art.scnassets */ = {isa = PBXFileReference; lastKnownFileType = wrapper.scnassets; path = art.scnassets; sourceTree = "<group>"; };
+		204F8B5822A124A800DE9F42 /* CameraViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraViewController.swift; sourceTree = "<group>"; };
+		204F8B5C22A1256400DE9F42 /* RecorderViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecorderViewController.swift; sourceTree = "<group>"; };
+		204F8B5E22A127AA00DE9F42 /* PreviewView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PreviewView.swift; sourceTree = "<group>"; };
+		204F8B6022A12FEF00DE9F42 /* DesignableViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignableViews.swift; sourceTree = "<group>"; };
 		20B26E1D2297FF66008F382E /* Example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Example.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		20B26E202297FF66008F382E /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		20B26E222297FF66008F382E /* ShaderTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderTypes.h; sourceTree = "<group>"; };
@@ -62,6 +70,34 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		204F8B6222A1300C00DE9F42 /* Metal */ = {
+			isa = PBXGroup;
+			children = (
+				20B26E222297FF66008F382E /* ShaderTypes.h */,
+				20B26E232297FF66008F382E /* Renderer.swift */,
+				20B26E272297FF66008F382E /* Shaders.metal */,
+				20B26E252297FF66008F382E /* MetalGameViewController.swift */,
+			);
+			name = Metal;
+			sourceTree = "<group>";
+		};
+		204F8B6322A1302900DE9F42 /* SCNView */ = {
+			isa = PBXGroup;
+			children = (
+				20404A98229E1EB8001D10E1 /* SCNGameViewController.swift */,
+			);
+			name = SCNView;
+			sourceTree = "<group>";
+		};
+		204F8B6422A1303F00DE9F42 /* Camera */ = {
+			isa = PBXGroup;
+			children = (
+				204F8B5822A124A800DE9F42 /* CameraViewController.swift */,
+				204F8B5E22A127AA00DE9F42 /* PreviewView.swift */,
+			);
+			name = Camera;
+			sourceTree = "<group>";
+		};
 		20B26E142297FF66008F382E = {
 			isa = PBXGroup;
 			children = (
@@ -83,11 +119,11 @@
 			isa = PBXGroup;
 			children = (
 				20B26E202297FF66008F382E /* AppDelegate.swift */,
-				20B26E222297FF66008F382E /* ShaderTypes.h */,
-				20B26E232297FF66008F382E /* Renderer.swift */,
-				20B26E272297FF66008F382E /* Shaders.metal */,
-				20B26E252297FF66008F382E /* MetalGameViewController.swift */,
-				20404A98229E1EB8001D10E1 /* SCNGameViewController.swift */,
+				204F8B6022A12FEF00DE9F42 /* DesignableViews.swift */,
+				204F8B5C22A1256400DE9F42 /* RecorderViewController.swift */,
+				204F8B6222A1300C00DE9F42 /* Metal */,
+				204F8B6322A1302900DE9F42 /* SCNView */,
+				204F8B6422A1303F00DE9F42 /* Camera */,
 				20B26E292297FF66008F382E /* Main.storyboard */,
 				20B26E2E2297FF67008F382E /* LaunchScreen.storyboard */,
 				20404A99229E1EB8001D10E1 /* art.scnassets */,
@@ -170,10 +206,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				20B26E282297FF66008F382E /* Shaders.metal in Sources */,
+				204F8B5F22A127AA00DE9F42 /* PreviewView.swift in Sources */,
 				20B26E242297FF66008F382E /* Renderer.swift in Sources */,
 				20404A9A229E1EB8001D10E1 /* SCNGameViewController.swift in Sources */,
 				20B26E262297FF66008F382E /* MetalGameViewController.swift in Sources */,
 				20B26E212297FF66008F382E /* AppDelegate.swift in Sources */,
+				204F8B5922A124A800DE9F42 /* CameraViewController.swift in Sources */,
+				204F8B5D22A1256400DE9F42 /* RecorderViewController.swift in Sources */,
+				204F8B6122A12FEF00DE9F42 /* DesignableViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

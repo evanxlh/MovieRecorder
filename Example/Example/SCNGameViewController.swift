@@ -11,11 +11,7 @@ import SceneKit
 import MovieRecorder
 import AVKit
 
-class SCNGameViewController: UIViewController {
-
-    fileprivate var recorder: MovieRecorder?
-    
-    var button = UIButton(type: .custom)
+class SCNGameViewController: RecorderViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -66,75 +62,9 @@ class SCNGameViewController: UIViewController {
         
         // configure the view
         scnView.backgroundColor = UIColor.black
-        
-        addRecordButton()
     }
     
-    fileprivate func addRecordButton() {
-        button.backgroundColor = UIColor.red
-        button.borderColor = UIColor.white
-        button.borderWidth = 2
-        button.shadowRadius = 2
-        button.shadowOpacity = 0.5
-        button.cornerRadius = 35
-        button.setTitle("REC", for: .normal)
-        button.addTarget(self, action: #selector(recorderButtonTapped), for: .touchUpInside)
-        view.addSubview(button)
-        
-        button.translatesAutoresizingMaskIntoConstraints = false
-        let widthConstraint = NSLayoutConstraint(item: button, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1.0, constant: 70)
-        let heightConstraint = NSLayoutConstraint(item: button, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1.0, constant: 70)
-        button.addConstraints([widthConstraint, heightConstraint])
-        
-        let centerX = NSLayoutConstraint(item: button, attribute: .centerX, relatedBy: .equal, toItem: view, attribute: .centerX, multiplier: 1.0, constant: 0)
-        let bottomY = NSLayoutConstraint(item: button, attribute: .bottom, relatedBy: .equal, toItem: view, attribute: .bottom, multiplier: 1.0, constant: -100)
-        view.addConstraints([centerX, bottomY])
-        
-    }
-    
-    override var shouldAutorotate: Bool {
-        return true
-    }
-    
-    override var prefersStatusBarHidden: Bool {
-        return true
-    }
-    
-    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        if UIDevice.current.userInterfaceIdiom == .phone {
-            return .allButUpsideDown
-        } else {
-            return .all
-        }
-    }
-    
-    @IBAction func recorderButtonTapped(_ sender: UIButton) {
-        
-        if recorder == nil {
-            createRecorder()
-            sender.isEnabled = false
-            recorder?.startRecording(completionBlock: {
-                sender.setTitle("STOP", for: .normal)
-                sender.isEnabled = true
-            })
-        } else {
-            sender.isEnabled = false
-            recorder?.stopRecording(completionBlock: { (movieURL) in
-                sender.isEnabled = true
-                sender.setTitle("REC", for: .normal)
-                let playerViewController = AVPlayerViewController()
-                let player = AVPlayer(url: movieURL)
-                playerViewController.player = player
-                self.present(playerViewController, animated: true, completion: {
-                    player.play()
-                })
-                
-                self.recorder = nil
-            })
-        }
-    }
-    
-    private func createRecorder() {
+    override func createRecorder() {
         let scale = UIScreen.main.nativeScale
         let size = CGSize(width: view.bounds.width * scale, height: view.bounds.height * scale)
         let movieURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("MyMovie.mp4")
@@ -144,11 +74,11 @@ class SCNGameViewController: UIViewController {
         let provider = SCNViewTrackDataProvider(scnView: self.view as! SCNView, trackConfiguration: trackConfiguration)
         
         recorder = MovieRecorder(outputURL: movieURL, trackDataProvider: provider)
-        recorder?.errorHandler = { error in
-            self.button.isEnabled = true
-            self.button.setTitle("REC", for: .normal)
+        recorder?.errorHandler = { [weak self] error in
+            self?.recordButton.isEnabled = true
+            self?.recordButton.setTitle("REC", for: .normal)
+            self?.recorder = nil
             print("recorder error: \(error)")
-            self.recorder = nil
         }
     }
 

@@ -24,17 +24,10 @@ extension AVCameraTrackDataProvider {
 
 public class AVCameraTrackDataProvider: NSObject, MovieTrackDataProvider {
     
-    public var errorHandler: ((MovieTrackDataProviderError) -> Void)?
-    
-    public var trackDataHandler: ((MovieTrackData) -> Void)?
-    
-    
-    public var isRunning: Bool {
-        return running
-    }
-    
-    public var trackConfiguration: MovieTrackConfiguration
-    
+    private let sessionqueue: DispatchQueue
+    private var cameraType: CameraType
+    private var hasAudioTrack: Bool
+    private var running: Bool = false
     
     public enum CameraType {
         case back(AVCaptureSession.Preset)
@@ -48,11 +41,17 @@ public class AVCameraTrackDataProvider: NSObject, MovieTrackDataProvider {
         }
     }
     
-    private var session: AVCaptureSession?
-    private let sessionqueue: DispatchQueue
-    private var cameraType: CameraType
-    private var hasAudioTrack: Bool
-    private var running: Bool = false
+    public var errorHandler: ((MovieTrackDataProviderError) -> Void)?
+    
+    public var trackDataHandler: ((MovieTrackData) -> Void)?
+    
+    public var isRunning: Bool {
+        return running
+    }
+    
+    public var trackConfiguration: MovieTrackConfiguration
+    
+    public private(set) var session: AVCaptureSession?
     
     public init(cameraType: CameraType, trackConfiguration: MovieTrackConfiguration) {
         self.cameraType = cameraType
