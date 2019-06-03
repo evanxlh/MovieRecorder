@@ -36,16 +36,7 @@ public class SCNViewTrackDataProvider: NSObject, MovieTrackDataProvider {
     
     /// Record the timestamp which the first track data is produced.
     fileprivate var startTime: TimeInterval? = nil
-    fileprivate let timeScale: CMTimeScale = 1000
-    
-    fileprivate lazy var renderPass: MTLRenderPassDescriptor = {
-        let renderPass = MTLRenderPassDescriptor()
-        renderPass.colorAttachments[0].loadAction = .clear
-        renderPass.colorAttachments[0].storeAction = .store
-        renderPass.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1.0)
-        return renderPass
-    }()
-    
+    fileprivate let timeScale: CMTimeScale = 100000000
     
     //MARK: - Public Properties
     
@@ -66,7 +57,7 @@ public class SCNViewTrackDataProvider: NSObject, MovieTrackDataProvider {
         self.trackConfiguration = trackConfiguration
         self.videoSize = trackConfiguration.videoSize
         self.videoFramerate = trackConfiguration.videoFramerate
-        self.queue = DispatchQueue(label: "SCNViewTrackDataProvider.Queue")
+        self.queue = DispatchQueue(label: "SCNViewTrackDataProvider.Queue", qos: .userInteractive)
         
         var scnViewFramerate = scnView.preferredFramesPerSecond
         if scnViewFramerate == 0 {
@@ -154,35 +145,39 @@ fileprivate extension SCNViewTrackDataProvider {
         
         videoRender = SCNRenderer(device: scnView.device, options: nil)
         videoRender!.scene = scnView.scene
-        renderPass.colorAttachments[0].texture = renderTexture
     }
     
     /// Render the scene view content to pixel buffer.
     func renderToPixelBuffer(atTime time: TimeInterval) {
         guard isRunning else { return }
         
+        let renderPass = MTLRenderPassDescriptor()
+        renderPass.colorAttachments[0].loadAction = .clear
+        renderPass.colorAttachments[0].storeAction = .store
+        renderPass.colorAttachments[0].texture = renderTexture
+        renderPass.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1.0)
+        
         let viewport = CGRect(origin: .zero, size: videoSize)
         let commandBuffer = videoRender?.commandQueue!.makeCommandBuffer()
-        videoRender?.render(atTime: time, viewport: viewport, commandBuffer: commandBuffer!, passDescriptor: renderPass)
         videoRender?.scene = scnView.scene
         videoRender?.pointOfView = scnView.pointOfView
+        videoRender?.render(atTime: time, viewport: viewport, commandBuffer: commandBuffer!, passDescriptor: renderPass)
         
         commandBuffer?.addCompletedHandler({ [weak self] (_) in
             guard let buffer = self?.renderBuffer else { return }
-            self?.outputPixelBuffer(from: buffer)
+            self?.outputPixelBuffer(from: buffer, time: CFAbsoluteTimeGetCurrent())
         })
         
         commandBuffer?.commit()
     }
     
-    func outputPixelBuffer(from buffer: CVPixelBuffer) {
+    func outputPixelBuffer(from buffer: CVPixelBuffer, time: TimeInterval) {
         
         do {
-            let currentTime = CACurrentMediaTime()
-            let time = CMTime(seconds: currentTime, preferredTimescale: timeScale)
+            let timestamp = CMTime(seconds: time, preferredTimescale: timeScale)
             let pixelBuffer = try self.bufferPool!.createPixelBuffer(from: buffer)
             self.queue.async {
-                self.trackDataHandler?(.videoPixelBuffer(pixelBuffer, time))
+                self.trackDataHandler?(.videoPixelBuffer(pixelBuffer, timestamp))
             }
         } catch {
             print("Create pixel buffer failed: \(error)")
@@ -221,14 +216,14 @@ extension SCNViewTrackDataProvider: SCNSceneRendererDelegate {
     }
     
     public func renderer(_ renderer: SCNSceneRenderer, willRenderScene scene: SCNScene, atTime time: TimeInterval) {
-        if currentFrameIndex % frameInterval == 0 {
-            renderToPixelBuffer(atTime: time)
-        }
-        currentFrameIndex += 1
         scnViewOriginDelegate?.renderer?(renderer, willRenderScene: scene, atTime: time)
     }
     
     public func renderer(_ renderer: SCNSceneRenderer, didRenderScene scene: SCNScene, atTime time: TimeInterval) {
+        if currentFrameIndex % frameInterval == 0 {
+            renderToPixelBuffer(atTime: time)
+        }
+        currentFrameIndex += 1
         scnViewOriginDelegate?.renderer?(renderer, didRenderScene: scene, atTime: time)
     }
 }

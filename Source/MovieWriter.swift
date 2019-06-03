@@ -46,7 +46,7 @@ import AVFoundation
     fileprivate var videoTransform: CGAffineTransform?
     
     fileprivate var locker = MutexLock()
-    fileprivate var writeQueue = DispatchQueue(label: "MovieRecorder.WriteQueue")
+    fileprivate var writeQueue = DispatchQueue(label: "MovieRecorder.WriteQueue", qos: .userInteractive)
     fileprivate var delegateQueue: DispatchQueue?
     
     fileprivate var state = State.idle

@@ -57,7 +57,7 @@ public class AVCameraTrackDataProvider: NSObject, MovieTrackDataProvider {
         self.cameraType = cameraType
         self.trackConfiguration = trackConfiguration
         self.hasAudioTrack = trackConfiguration.hasAudioTrack
-        self.sessionqueue = DispatchQueue(label: "AVCameraTrackDataProvider.SessionQueue")
+        self.sessionqueue = DispatchQueue(label: "AVCameraTrackDataProvider.SessionQueue", qos: .userInteractive)
         super.init()
     }
     
