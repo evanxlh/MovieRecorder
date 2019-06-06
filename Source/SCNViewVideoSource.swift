@@ -1,5 +1,5 @@
 //
-//  SCNViewTrackDataProvider.swift
+//  SCNViewVideoSource.swift
 //  MovieRecorder
 //
 //  Created by Evan Xie on 2019/5/28.
@@ -9,34 +9,37 @@ import CoreMedia
 import CoreVideo
 import SceneKit
 
-public class SCNViewTrackDataProvider: NSObject, MovieTrackDataProvider {
+public class SCNViewVideoSource: NSObject, SampleSource {
     
-    fileprivate var audioSession: AudioCaptureSession?
+    enum Error: Swift.Error {
+        case failToPrepareMetalRender
+    }
+    
     fileprivate var running: Bool = false
-    fileprivate var queue: DispatchQueue
     
     fileprivate weak var scnView: SCNView!
     fileprivate var scnViewOriginDelegate: SCNSceneRendererDelegate?
     
+    fileprivate var textureLoader: PixelBufferTextureLoader
     fileprivate var bufferPool: PixelBufferPool?
     fileprivate var renderBuffer: CVPixelBuffer?
     fileprivate var videoRender: SCNRenderer?
     
-    fileprivate var textureCache: CVMetalTextureCache?
     fileprivate var renderTexture: MTLTexture?
     
     fileprivate var videoSize: CGSize
     fileprivate var videoFramerate: Int
     
-    /// Used to how frequently the video track data produces.
+    /// Used to how frequently the video sample produces.
     fileprivate var frameInterval: Int
     
     /// Track how many times which scnView renders.
     fileprivate var currentFrameIndex: Int = 0
     
-    /// Record the timestamp which the first track data is produced.
+    /// Record the timestamp which the first sample is produced.
     fileprivate var startTime: TimeInterval? = nil
-    fileprivate let timeScale: CMTimeScale = 100000000
+    fileprivate let timeScale: CMTimeScale = 10000
+    fileprivate var semaphore: DispatchSemaphore
     
     //MARK: - Public Properties
     
@@ -44,20 +47,20 @@ public class SCNViewTrackDataProvider: NSObject, MovieTrackDataProvider {
         return running
     }
     
-    public var trackConfiguration: MovieTrackConfiguration
+    public var sourceType: SampleSourceType {
+        return .video
+    }
     
-    public var errorHandler: ((MovieTrackDataProviderError) -> Void)?
-    
-    public var trackDataHandler: ((MovieTrackData) -> Void)?
+    public let sampleConsumers = SampleConsumerContainer()
     
     //MARK: - Public APIs
     
-    public init(scnView: SCNView, trackConfiguration: MovieTrackConfiguration) {
+    public init(scnView: SCNView, videoSize: CGSize, videoFramerate: Int) {
         self.scnView = scnView
-        self.trackConfiguration = trackConfiguration
-        self.videoSize = trackConfiguration.videoSize
-        self.videoFramerate = trackConfiguration.videoFramerate
-        self.queue = DispatchQueue(label: "SCNViewTrackDataProvider.Queue", qos: .userInteractive)
+        self.videoSize = videoSize
+        self.videoFramerate = videoFramerate
+        self.semaphore = DispatchSemaphore(value: 1)
+        self.textureLoader = PixelBufferTextureLoader(device: scnView.device!)
         
         var scnViewFramerate = scnView.preferredFramesPerSecond
         if scnViewFramerate == 0 {
@@ -66,90 +69,50 @@ public class SCNViewTrackDataProvider: NSObject, MovieTrackDataProvider {
         frameInterval = max(1, scnViewFramerate / videoFramerate)
     }
     
-    public func startRunning(completionBlcok: @escaping (() -> Void)) {
+    public func startRunning() throws {
         guard !isRunning else { return }
-        queue.async {
-            do {
-                try self.prepareAndStart()
-                self.running = true
-                self.takeoverRenderDelegate()
-                completionBlcok()
-            } catch {
-                self.errorHandler?(.failToStart(error))
-            }
-        }
+        
+        running = true
+        currentFrameIndex = 0
+        takeoverRenderDelegate()
+        try prepareMetalRender()
     }
     
-    public func stopRunning(completionBlcok: @escaping (() -> Void)) {
+    public func stopRunning() {
         guard isRunning else { return }
-        self.running = false
-        queue.async {
-            self.giveBackRenderDelegate()
-            self.audioSession?.stop()
-            self.audioSession = nil
-            self.videoRender = nil
-            self.renderBuffer = nil
-            self.renderTexture = nil
-            self.bufferPool = nil
-            self.textureCache = nil
-        }
+        running = false
+        giveBackRenderDelegate()
+        videoRender = nil
+        renderBuffer = nil
+        renderTexture = nil
+        bufferPool = nil
     }
 
 }
 
 //MARK: - Privates
 
-fileprivate extension SCNViewTrackDataProvider {
-    
-    func prepareAndStart() throws {
-        
-        currentFrameIndex = 0
-        
-        switch trackConfiguration {
-        case .video(let configuration):
-            try prepareMetalRender()
-        case let .audioAndVideo(audioConfiguration, videoConfiuration):
-            try prepareAudioProvider()
-            try prepareMetalRender()
-        }
-    }
-    
-    func prepareAudioProvider() throws {
-        audioSession = AudioCaptureSession(sampleBufferCallbackQueue: queue)
-        audioSession!.sampleBufferHandler = { [weak self] (_ sampleBuffer) in
-            self?.trackDataHandler?(.audioSampleBuffer(sampleBuffer))
-        }
-        try audioSession!.start()
-    }
+fileprivate extension SCNViewVideoSource {
     
     func prepareMetalRender() throws {
-        var result = CVMetalTextureCacheCreate(kCFAllocatorDefault, nil, scnView.device!, nil, &textureCache)
-        guard result == kCVReturnSuccess else {
-            fatalError("Create texture cache failed: \(result)")
-        }
-        
+       
         bufferPool = try PixelBufferPool(pixelBufferCount: 6, width: Int(videoSize.width), height: Int(videoSize.height),pixelFormat: kCVPixelFormatType_32BGRA)
         renderBuffer = try bufferPool?.createPixelBuffer()
         
-        let textureAttributes = [kCVPixelBufferMetalCompatibilityKey: true] as CFDictionary
-        var metalTexture: CVMetalTexture?
-        result = CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, textureCache!, renderBuffer!,
-                                                           textureAttributes, .bgra8Unorm_srgb, bufferPool!.width, bufferPool!.height, 0, &metalTexture)
-        guard result == kCVReturnSuccess else {
-            throw CoreVideoError.failure(CVReturnValue(result))
+        guard let metalTexture = textureLoader.loadTexture(from: renderBuffer!, usingSRGB: true) else {
+            throw Error.failToPrepareMetalRender
         }
-        guard let texture = CVMetalTextureGetTexture(metalTexture!) else {
-            fatalError("Get texture failed")
-        }
-        renderTexture = texture
-        
+    
+        renderTexture = metalTexture.bgraTexture
         videoRender = SCNRenderer(device: scnView.device, options: nil)
         videoRender!.scene = scnView.scene
     }
     
     /// Render the scene view content to pixel buffer.
     func renderToPixelBuffer(atTime time: TimeInterval) {
-        guard isRunning else { return }
+        guard running else { return }
+        
+        semaphore.wait()
         
         let renderPass = MTLRenderPassDescriptor()
         renderPass.colorAttachments[0].loadAction = .clear
@@ -165,7 +128,8 @@ fileprivate extension SCNViewTrackDataProvider {
         
         commandBuffer?.addCompletedHandler({ [weak self] (_) in
             guard let buffer = self?.renderBuffer else { return }
-            self?.outputPixelBuffer(from: buffer, time: CFAbsoluteTimeGetCurrent())
+            self?.outputPixelBuffer(from: buffer, time: time)
+            self?.semaphore.signal()
         })
         
         commandBuffer?.commit()
@@ -176,9 +140,7 @@ fileprivate extension SCNViewTrackDataProvider {
         do {
             let timestamp = CMTime(seconds: time, preferredTimescale: timeScale)
             let pixelBuffer = try self.bufferPool!.createPixelBuffer(from: buffer)
-            self.queue.async {
-                self.trackDataHandler?(.videoPixelBuffer(pixelBuffer, timestamp))
-            }
+            notifyConsumersWhenMediaSampleReady(.videoPixelBuffer(pixelBuffer, timestamp))
         } catch {
             print("Create pixel buffer failed: \(error)")
         }
@@ -187,7 +149,7 @@ fileprivate extension SCNViewTrackDataProvider {
 
 //MARK: Takeover SCNView's Render Delegate
 
-extension SCNViewTrackDataProvider: SCNSceneRendererDelegate {
+extension SCNViewVideoSource: SCNSceneRendererDelegate {
     
     fileprivate func takeoverRenderDelegate() {
         scnViewOriginDelegate = scnView.delegate
@@ -216,14 +178,14 @@ extension SCNViewTrackDataProvider: SCNSceneRendererDelegate {
     }
     
     public func renderer(_ renderer: SCNSceneRenderer, willRenderScene scene: SCNScene, atTime time: TimeInterval) {
-        scnViewOriginDelegate?.renderer?(renderer, willRenderScene: scene, atTime: time)
-    }
-    
-    public func renderer(_ renderer: SCNSceneRenderer, didRenderScene scene: SCNScene, atTime time: TimeInterval) {
         if currentFrameIndex % frameInterval == 0 {
             renderToPixelBuffer(atTime: time)
         }
         currentFrameIndex += 1
+        scnViewOriginDelegate?.renderer?(renderer, willRenderScene: scene, atTime: time)
+    }
+    
+    public func renderer(_ renderer: SCNSceneRenderer, didRenderScene scene: SCNScene, atTime time: TimeInterval) {
         scnViewOriginDelegate?.renderer?(renderer, didRenderScene: scene, atTime: time)
     }
 }

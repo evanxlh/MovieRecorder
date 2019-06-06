@@ -109,7 +109,7 @@ internal struct OSStatusValue: CustomStringConvertible, Equatable {
     }
 }
 
-internal enum CoreVideoError: Error {
+internal enum CoreVideoError: LocalizedError {
     case failure(CVReturnValue)
 }
 

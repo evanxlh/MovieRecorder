@@ -27,4 +27,10 @@ internal final class MutexLock {
     public func unlock() {
         pthread_mutex_unlock(&internalLock)
     }
+    
+    public func autoLock(_ block: () -> Void) {
+        pthread_mutex_lock(&internalLock)
+        block()
+        pthread_mutex_unlock(&internalLock)
+    }
 }

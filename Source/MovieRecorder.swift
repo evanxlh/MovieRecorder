@@ -10,21 +10,47 @@ import CoreMedia
 import CoreVideo
 
 /**
+ Video file container type.
+ */
+public enum MovieFileType: Int {
+    
+    /// The value of this UTI is `com.apple.m4v-video`,
+    /// file are identified with the `m4v` extension.
+    case m4v
+    
+    /// The value of this UTI is `com.apple.quicktime-movie`,
+    /// files are identified with the `mov` and `qt` extensions.
+    case mov
+    
+    /// The value of this UTI is `public.mpeg-4`,
+    /// file are identified with the `mp4` extension.
+    case mp4
+    
+    public var rawType: AVFileType {
+        return [AVFileType.m4v, AVFileType.mov, AVFileType.mp4][rawValue]
+    }
+    
+    public var fileExtension: String {
+        return ["m4v", "mov", "mp4"][rawValue]
+    }
+}
+
+
+/**
  A universal movie recorder for your most usecase.
  It's full asychronously, non-block.
  
  How does movie recorder work?
- 1. Create movie recorder, add the movie track data provider.
+ 1. Create movie recorder, add the media sample source.
  2. Setup error handler to handle the errors
- 3. Start recording, movie recorder will setup all the things, and start the track data provider.
+ 3. Start recording, movie recorder will setup all the things, and start sample source.
  4. Stop recording, get the final movie file.
  */
-public final class MovieRecorder {
+public final class MovieRecorder: NSObject {
     
     fileprivate let movieFileURL: URL
     fileprivate let fileType: MovieFileType
     fileprivate var movieWriter: MovieWriter?
-    fileprivate let dataProvider: MovieTrackDataProvider
     
     fileprivate var internalState = State.stopped
     fileprivate var lock = MutexLock()
@@ -55,11 +81,12 @@ public final class MovieRecorder {
     /// You can specify the creator, copyright, and so on, by setting this metadata.
     public var metadata: [AVMetadataItem]?
     
-    public init(outputURL: URL, trackDataProvider: MovieTrackDataProvider, movieFileType: MovieFileType = .mov) {
+    public init(outputURL: URL, sampleSources: [SampleSource], movieFileType: MovieFileType = .mov) {
+        guard sampleSources.count > 0 else {
+            fatalError("Movie recorder need sample data source.")
+        }
         movieFileURL = outputURL
         fileType = movieFileType
-        dataProvider = trackDataProvider
-        hasAudioTrack = trackDataProvider.hasAudioTrack
     }
     
     /**
@@ -84,6 +111,17 @@ public final class MovieRecorder {
         }
         stopCompletionCallback = completionBlock
         prepareToStop()
+    }
+}
+
+extension MovieRecorder: MediaSampleConsumer {
+    
+    public func consumeMediaSample(_ mediaSample: MediaSample, source: SampleSource) {
+        
+    }
+    
+    public func handleSampleSourceError(_ error: Swift.Error, source: SampleSource) {
+        
     }
 }
 
@@ -160,8 +198,8 @@ fileprivate extension MovieRecorder {
         return videoFormatDescription != nil
     }
     
-    func extractFormatDescriptionIfNeed(from trackData: MovieTrackData) {
-        switch trackData {
+    func extractFormatDescriptionIfNeed(from mediaSample: MediaSample) {
+        switch mediaSample {
         case let .audioSampleBuffer(buffer):
             if audioFormatDescription == nil {
                 audioFormatDescription = CMSampleBufferGetFormatDescription(buffer)
@@ -179,26 +217,26 @@ fileprivate extension MovieRecorder {
     
     func prepareToStart() {
         
-        dataProvider.errorHandler = { [weak self] (error) in
-            self?.stopCompletionCallback = nil
-            self?.finishWriter()
-            self?.handleError(error)
-        }
-        
-        dataProvider.trackDataHandler = { [weak self] (trackData) in
-            guard let strongSelf = self else { return}
-            strongSelf.extractFormatDescriptionIfNeed(from: trackData)
-            
-            // If movie writer not start, but the audio/video format description are both obtained,
-            // so, we can start the writer.
-            if strongSelf.movieWriter == nil && strongSelf.isReadyForSettingUpWriter {
-                strongSelf.startWriter()
-            } else if strongSelf.movieWriter != nil {
-                strongSelf.appendTrackData(trackData)
-            }
-        }
-        
-        dataProvider.startRunning { }
+//        dataProvider.errorHandler = { [weak self] (error) in
+//            self?.stopCompletionCallback = nil
+//            self?.finishWriter()
+//            self?.handleError(error)
+//        }
+//
+//        dataProvider.trackDataHandler = { [weak self] (trackData) in
+//            guard let strongSelf = self else { return}
+//            strongSelf.extractFormatDescriptionIfNeed(from: trackData)
+//
+//            // If movie writer not start, but the audio/video format description are both obtained,
+//            // so, we can start the writer.
+//            if strongSelf.movieWriter == nil && strongSelf.isReadyForSettingUpWriter {
+//                strongSelf.startWriter()
+//            } else if strongSelf.movieWriter != nil {
+//                strongSelf.appendTrackData(trackData)
+//            }
+//        }
+//
+//        dataProvider.startRunning { }
     }
     
     func prepareToStop() {
@@ -207,9 +245,9 @@ fileprivate extension MovieRecorder {
     }
     
     func stopProvider() {
-        dataProvider.errorHandler = nil
-        dataProvider.trackDataHandler = nil
-        dataProvider.stopRunning { }
+//        dataProvider.errorHandler = nil
+//        dataProvider.trackDataHandler = nil
+//        dataProvider.stopRunning { }
     }
     
     func startWriter() {
@@ -227,8 +265,8 @@ fileprivate extension MovieRecorder {
         movieWriter?.startWriting()
     }
     
-    func appendTrackData(_ trackData: MovieTrackData) {
-        switch trackData {
+    func appendMediaSample(_ mediaSample: MediaSample) {
+        switch mediaSample {
         case let .audioSampleBuffer(buffer):
             movieWriter?.append(audioSampleBuffer: buffer)
         case let .videoSampleBuffer(buffer):

@@ -46,17 +46,11 @@ import AVFoundation
     fileprivate var videoTransform: CGAffineTransform?
     
     fileprivate var locker = MutexLock()
-    fileprivate var writeQueue = DispatchQueue(label: "MovieRecorder.WriteQueue", qos: .userInteractive)
+    fileprivate var workingQueue = DispatchQueue(label: "MovieWriter.WorkingQueue")
     fileprivate var delegateQueue: DispatchQueue?
     
     fileprivate var state = State.idle
-    fileprivate var sessionStarted = false
-    
-    fileprivate var isSessionStarted: Bool {
-        locker.lock()
-        defer { locker.unlock() }
-        return sessionStarted
-    }
+    fileprivate var isSessionStarted = false
     
     fileprivate var syncedState: State {
         locker.lock()
@@ -83,7 +77,7 @@ import AVFoundation
      Init with movie file saved url, movie file container type and delegate callback queue.
      Delegate will be invoked on the internal queue if no callback queue specified.
      */
-     init(outputURL: URL, fileType: MovieFileType = .mp4, delegateCallbackQueue: DispatchQueue? = nil) {
+     init(outputURL: URL, fileType: MovieFileType = .mov, delegateCallbackQueue: DispatchQueue? = nil) {
         self.outputURL = outputURL
         self.fileType = fileType
         self.delegateQueue = delegateCallbackQueue
@@ -96,6 +90,22 @@ import AVFoundation
      movie writer will compute the encoding settings based audio source format.
      
      Make sure add audio track before movie writer starting.
+     
+     - An example of encoding settings:
+     
+     ```
+     var layout = AudioChannelLayout()
+     layout.mChannelLayoutTag = kAudioChannelLayoutTag_Mono
+     let layoutData = Data(bytes: &layout, count: MemoryLayout<AudioChannelLayout>.size)
+     
+     let audioSettings =  [
+        AVFormatIDKey: kAudioFormatMPEG4AAC,
+        AVNumberOfChannelsKey: 1,
+        AVSampleRateKey: 44100,
+        AVChannelLayoutKey : layoutData,
+        AVEncoderBitRateKey: 128000
+     ]
+     ```
      */
     func addAudioTrack(sourceFormat: CMAudioFormatDescription, encodingSettings: [String: Any]? = nil) {
         guard transitionToState(.idle) else {
@@ -110,6 +120,24 @@ import AVFoundation
      movie writer will compute the encoding settings based video source format.
      
      Make sure add video track before movie writer starting.
+     
+     - An example of encoding settings:
+     
+     ```
+     let compressionProperties = [
+        AVVideoAverageBitRateKey: Float(3840 * 2160) * 10.1,
+        AVVideoExpectedSourceFrameRateKey: 30,
+        AVVideoMaxKeyFrameIntervalKey: 30,
+        AVVideoProfileLevelKey: AVVideoProfileLevelH264BaselineAutoLevel
+     ] as [String : Any]
+     
+     let videoSettings =  [
+        AVVideoCodecKey: AVVideoCodecH264,
+        AVVideoWidthKey: 3840,
+        AVVideoHeightKey: 2160,
+        AVVideoCompressionPropertiesKey : compressionProperties
+     ]
+     ```
      */
     func addVideoTrack(sourceFormat: CMVideoFormatDescription, encodingSettings: [String: Any]? = nil, transform: CGAffineTransform? = nil) {
         guard transitionToState(.idle) else {
@@ -128,18 +156,18 @@ import AVFoundation
      If failed, `movieWriterDidFail` delegate function will be invoked.
      */
      func startWriting() {
-        locker.lock()
-        if audioSourceFormat == nil && videoSourceFormat == nil {
-            fatalError("No media track added, please add audio/video tracks before writer starting.")
+        locker.autoLock { [unowned self] in
+            if self.audioSourceFormat == nil && self.videoSourceFormat == nil {
+                fatalError("No media track added, please add audio/video tracks before writer starting.")
+            }
         }
-        locker.unlock()
         
         guard transitionToState(.starting) else {
             print("Can not start movie writer in current state: \(state.description)")
             return
         }
         
-        self.writeQueue.async { [weak self] in
+        self.workingQueue.async { [weak self] in
             self?.prepareWriter()
         }
     }
@@ -153,7 +181,7 @@ import AVFoundation
             return
         }
         
-        writeQueue.async {
+        workingQueue.async {
             
             // Maybe movie writer enters `stopped` state. In that case, just return.
             guard self.syncedState == .finishingPhase1 else { return }
@@ -217,7 +245,7 @@ fileprivate extension MovieWriter {
             
             var queue = delegateQueue
             if queue == nil {
-                queue = writeQueue
+                queue = workingQueue
             }
             queue!.async {
                 self.handleCallbackDelegate(state: newState, error: error)
@@ -230,10 +258,10 @@ fileprivate extension MovieWriter {
     func handleCallbackDelegate(state: State, error: Error?) {
         switch state {
         case .failed:
-            writeQueue.async { self.cleanAll() }
+            workingQueue.async { self.cleanAll() }
             delegate?.movieWriterDidFail(self, error: error!)
         case .finished:
-            writeQueue.async { self.tearDownWriter() }
+            workingQueue.async { self.tearDownWriter() }
             delegate?.movieWriterDidFinish(self, movieOutputURL: outputURL)
         case .writing:
             delegate?.movieWriterDidStart(self)
@@ -273,7 +301,7 @@ fileprivate extension MovieWriter {
     
     func setupAudioInput() throws {
         
-        if audioSettings == nil {
+        if audioSettings == nil || audioSettings!.isEmpty {
             audioSettings = [AVFormatIDKey: kAudioFormatMPEG4AAC] as [String: Any]
         }
         
@@ -288,7 +316,7 @@ fileprivate extension MovieWriter {
     
     func setupVideoInput() throws {
         
-        if videoSettings == nil {
+        if videoSettings == nil || videoSettings!.isEmpty {
             let dimension = CMVideoFormatDescriptionGetDimensions(videoSourceFormat!)
             let compressionProperties = [
                 AVVideoAverageBitRateKey: Float(dimension.width * dimension.height) * 10.1,
@@ -335,7 +363,7 @@ fileprivate extension MovieWriter {
     
     func append(sampleBuffer: CMSampleBuffer, track: Track) {
         
-        writeQueue.async {
+        workingQueue.async {
             guard self.syncedState == .writing else {
                 print("Can not append sample buffer in current state: \(self.state)")
                 return
@@ -344,10 +372,10 @@ fileprivate extension MovieWriter {
             // Makesure the video doesn't appear black frame in the beginning.
             if !self.isSessionStarted && track == .video {
                 self.assetWriter!.startSession(atSourceTime: CMSampleBufferGetPresentationTimeStamp(sampleBuffer))
-                self.sessionStarted = true
+                self.isSessionStarted = true
             }
             
-            guard self.sessionStarted else { return }
+            guard self.isSessionStarted else { return }
             
             let input: AVAssetWriterInput
             if track == .video {
@@ -360,6 +388,8 @@ fileprivate extension MovieWriter {
                 if !input.append(sampleBuffer) {
                     if self.assetWriter!.status == .failed {
                         self.transitionToState(.failed, error: .underlyingError(self.assetWriter!.error! as NSError))
+                    } else {
+                        print("\(input.debugName) append sample buffer failed, so dropping buffer.")
                     }
                 }
             } else {

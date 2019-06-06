@@ -8,7 +8,6 @@
 import UIKit
 import QuartzCore
 import SceneKit
-import MovieRecorder
 import AVKit
 
 class SCNGameViewController: RecorderViewController {
@@ -65,21 +64,21 @@ class SCNGameViewController: RecorderViewController {
     }
     
     override func createRecorder() {
-        let scale = UIScreen.main.nativeScale
-        let size = CGSize(width: view.bounds.width * scale, height: view.bounds.height * scale)
-        let movieURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("MyMovie.mp4")
-        let audioConfiguration = AudioTrackConfiguration()
-        let videoConfiguration = VideoTrackConfiguration(framerate: 60, resolution: size)
-        let trackConfiguration = MovieTrackConfiguration.audioAndVideo(audioConfiguration, videoConfiguration)
-        let provider = SCNViewTrackDataProvider(scnView: self.view as! SCNView, trackConfiguration: trackConfiguration)
+//        let scale = UIScreen.main.nativeScale
+//        let size = CGSize(width: view.bounds.width * scale, height: view.bounds.height * scale)
+//        let movieURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("MyMovie.mp4")
+//        let audioConfiguration = AudioTrackConfiguration()
+//        let videoConfiguration = VideoTrackConfiguration(framerate: 60, resolution: size)
+//        let trackConfiguration = MovieTrackConfiguration.audioAndVideo(audioConfiguration, videoConfiguration)
+//        let provider = SCNViewVideoSource(scnView: self.view as! SCNView, trackConfiguration: trackConfiguration)
         
-        recorder = MovieRecorder(outputURL: movieURL, trackDataProvider: provider)
-        recorder?.errorHandler = { [weak self] error in
-            self?.recordButton.isEnabled = true
-            self?.recordButton.setTitle("REC", for: .normal)
-            self?.recorder = nil
-            print("recorder error: \(error)")
-        }
+//        recorder = MovieRecorder(outputURL: movieURL, trackDataProvider: provider)
+//        recorder?.errorHandler = { [weak self] error in
+//            self?.recordButton.isEnabled = true
+//            self?.recordButton.setTitle("REC", for: .normal)
+//            self?.recorder = nil
+//            print("recorder error: \(error)")
+//        }
     }
 
 }
