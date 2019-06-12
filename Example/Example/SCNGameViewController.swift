@@ -8,7 +8,7 @@
 import UIKit
 import QuartzCore
 import SceneKit
-import AVKit
+import MovieRecorder
 
 class SCNGameViewController: RecorderViewController {
     
@@ -48,6 +48,7 @@ class SCNGameViewController: RecorderViewController {
         
         // retrieve the SCNView
         let scnView = self.view as! SCNView
+        scnView.preferredFramesPerSecond = 60
         scnView.antialiasingMode = .multisampling4X
         
         // set the scene to the view
@@ -62,23 +63,21 @@ class SCNGameViewController: RecorderViewController {
         // configure the view
         scnView.backgroundColor = UIColor.black
     }
-    
+
     override func createRecorder() {
-//        let scale = UIScreen.main.nativeScale
-//        let size = CGSize(width: view.bounds.width * scale, height: view.bounds.height * scale)
-//        let movieURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("MyMovie.mp4")
-//        let audioConfiguration = AudioTrackConfiguration()
-//        let videoConfiguration = VideoTrackConfiguration(framerate: 60, resolution: size)
-//        let trackConfiguration = MovieTrackConfiguration.audioAndVideo(audioConfiguration, videoConfiguration)
-//        let provider = SCNViewVideoSource(scnView: self.view as! SCNView, trackConfiguration: trackConfiguration)
         
-//        recorder = MovieRecorder(outputURL: movieURL, trackDataProvider: provider)
-//        recorder?.errorHandler = { [weak self] error in
-//            self?.recordButton.isEnabled = true
-//            self?.recordButton.setTitle("REC", for: .normal)
-//            self?.recorder = nil
-//            print("recorder error: \(error)")
-//        }
+        var movieURL = URL(fileURLWithPath: NSTemporaryDirectory())
+        movieURL = movieURL.appendingPathComponent("myMovie.mp4")
+        
+        recorder = SCNViewRecorder(view: view as! SCNView, enablesAudio: true, outputURL: movieURL)
+        recorder?.metadata = SCNViewRecorder.commonMetaldata(withCreator: "Evan Xie", copyrights: "Evan Xie, 2019")
+    
+        recorder?.errorHandler = { [weak self] error in
+            self?.recordButton.isEnabled = true
+            self?.recordButton.setTitle("REC", for: .normal)
+            self?.recorder = nil
+            print("recorder error: \(error)")
+        }
     }
 
 }

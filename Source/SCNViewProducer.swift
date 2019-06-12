@@ -1,5 +1,5 @@
 //
-//  SCNViewVideoSource.swift
+//  SCNViewProducer.swift
 //  MovieRecorder
 //
 //  Created by Evan Xie on 2019/5/28.
@@ -8,14 +8,16 @@
 import CoreMedia
 import CoreVideo
 import SceneKit
+import AVFoundation
 
-public class SCNViewVideoSource: NSObject, SampleSource {
+internal final class SCNViewProducer: NSObject, MediaSampleProducer {
     
     enum Error: Swift.Error {
         case failToPrepareMetalRender
     }
     
     fileprivate var running: Bool = false
+    fileprivate var queue: DispatchQueue
     
     fileprivate weak var scnView: SCNView!
     fileprivate var scnViewOriginDelegate: SCNSceneRendererDelegate?
@@ -24,7 +26,6 @@ public class SCNViewVideoSource: NSObject, SampleSource {
     fileprivate var bufferPool: PixelBufferPool?
     fileprivate var renderBuffer: CVPixelBuffer?
     fileprivate var videoRender: SCNRenderer?
-    
     fileprivate var renderTexture: MTLTexture?
     
     fileprivate var videoSize: CGSize
@@ -41,26 +42,33 @@ public class SCNViewVideoSource: NSObject, SampleSource {
     fileprivate let timeScale: CMTimeScale = 10000
     fileprivate var semaphore: DispatchSemaphore
     
-    //MARK: - Public Properties
+    //MARK: -  Properties
     
-    public var isRunning: Bool {
+    var isRunning: Bool {
         return running
     }
     
-    public var sourceType: SampleSourceType {
+    var producerType: ProducerType {
         return .video
     }
     
-    public let sampleConsumers = SampleConsumerContainer()
+    let sampleConsumers = SampleConsumerContainer()
     
-    //MARK: - Public APIs
+    deinit {
+        semaphore.signal()
+        print("\(self) deinit")
+    }
     
-    public init(scnView: SCNView, videoSize: CGSize, videoFramerate: Int) {
+    //MARK: -  APIs
+    
+    init(scnView: SCNView, videoSize: CGSize, videoFramerate: Int) {
         self.scnView = scnView
         self.videoSize = videoSize
         self.videoFramerate = videoFramerate
         self.semaphore = DispatchSemaphore(value: 1)
         self.textureLoader = PixelBufferTextureLoader(device: scnView.device!)
+        let highQueue = DispatchQueue.global(qos: .userInteractive)
+        self.queue = DispatchQueue(label: "SCNViewProducer.Queue", attributes: [], target: highQueue)
         
         var scnViewFramerate = scnView.preferredFramesPerSecond
         if scnViewFramerate == 0 {
@@ -69,16 +77,18 @@ public class SCNViewVideoSource: NSObject, SampleSource {
         frameInterval = max(1, scnViewFramerate / videoFramerate)
     }
     
-    public func startRunning() throws {
+    func startRunning() throws {
         guard !isRunning else { return }
         
         running = true
         currentFrameIndex = 0
-        takeoverRenderDelegate()
         try prepareMetalRender()
+        
+        // When metal render prepared, then take over the SCNView render delegate.
+        takeoverRenderDelegate()
     }
     
-    public func stopRunning() {
+    func stopRunning() {
         guard isRunning else { return }
         running = false
         giveBackRenderDelegate()
@@ -87,12 +97,29 @@ public class SCNViewVideoSource: NSObject, SampleSource {
         renderTexture = nil
         bufferPool = nil
     }
-
+    
+    func recommendedSettingsForFileType(_ fileType: MovieFileType) -> [String : Any]? {
+        let compressionProperties = [
+            AVVideoAverageBitRateKey: Float(videoSize.width * videoSize.height) * 7.2,
+            AVVideoExpectedSourceFrameRateKey: videoFramerate,
+            AVVideoMaxKeyFrameIntervalKey: videoFramerate,
+            AVVideoProfileLevelKey: AVVideoProfileLevelH264BaselineAutoLevel
+        ] as [String : Any]
+        
+        let videoSettings =  [
+            AVVideoCodecKey: AVVideoCodecH264,
+            AVVideoWidthKey: Int(videoSize.width),
+            AVVideoHeightKey: Int(videoSize.height),
+            AVVideoCompressionPropertiesKey : compressionProperties
+        ] as [String: Any]
+        
+        return videoSettings
+    }
 }
 
 //MARK: - Privates
 
-fileprivate extension SCNViewVideoSource {
+fileprivate extension SCNViewProducer {
     
     func prepareMetalRender() throws {
        
@@ -113,6 +140,10 @@ fileprivate extension SCNViewVideoSource {
         guard running else { return }
         
         semaphore.wait()
+        guard let commandBuffer = videoRender?.commandQueue?.makeCommandBuffer() else {
+            semaphore.signal()
+            return
+        }
         
         let renderPass = MTLRenderPassDescriptor()
         renderPass.colorAttachments[0].loadAction = .clear
@@ -121,18 +152,18 @@ fileprivate extension SCNViewVideoSource {
         renderPass.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1.0)
         
         let viewport = CGRect(origin: .zero, size: videoSize)
-        let commandBuffer = videoRender?.commandQueue!.makeCommandBuffer()
         videoRender?.scene = scnView.scene
         videoRender?.pointOfView = scnView.pointOfView
-        videoRender?.render(atTime: time, viewport: viewport, commandBuffer: commandBuffer!, passDescriptor: renderPass)
+        videoRender?.render(atTime: time, viewport: viewport, commandBuffer: commandBuffer, passDescriptor: renderPass)
         
-        commandBuffer?.addCompletedHandler({ [weak self] (_) in
-            guard let buffer = self?.renderBuffer else { return }
-            self?.outputPixelBuffer(from: buffer, time: time)
-            self?.semaphore.signal()
+        commandBuffer.addCompletedHandler({ [weak self] (_) in
+            defer { self?.semaphore.signal() }
+            guard let strongSelf = self else { return }
+            guard let buffer = strongSelf.renderBuffer else { return }
+            strongSelf.outputPixelBuffer(from: buffer, time: time)
         })
         
-        commandBuffer?.commit()
+        commandBuffer.commit()
     }
     
     func outputPixelBuffer(from buffer: CVPixelBuffer, time: TimeInterval) {
@@ -140,7 +171,9 @@ fileprivate extension SCNViewVideoSource {
         do {
             let timestamp = CMTime(seconds: time, preferredTimescale: timeScale)
             let pixelBuffer = try self.bufferPool!.createPixelBuffer(from: buffer)
-            notifyConsumersWhenMediaSampleReady(.videoPixelBuffer(pixelBuffer, timestamp))
+            queue.async { [weak self] in
+                self?.notifyConsumersWhenMediaSampleReady(.videoPixelBuffer(pixelBuffer, timestamp))
+            }
         } catch {
             print("Create pixel buffer failed: \(error)")
         }
@@ -149,7 +182,7 @@ fileprivate extension SCNViewVideoSource {
 
 //MARK: Takeover SCNView's Render Delegate
 
-extension SCNViewVideoSource: SCNSceneRendererDelegate {
+extension SCNViewProducer: SCNSceneRendererDelegate {
     
     fileprivate func takeoverRenderDelegate() {
         scnViewOriginDelegate = scnView.delegate
@@ -160,32 +193,33 @@ extension SCNViewVideoSource: SCNSceneRendererDelegate {
         scnView.delegate = scnViewOriginDelegate
     }
     
-    public func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
+    func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
         scnViewOriginDelegate?.renderer?(renderer, updateAtTime: time)
     }
     
-    public func renderer(_ renderer: SCNSceneRenderer, didApplyAnimationsAtTime time: TimeInterval) {
+    func renderer(_ renderer: SCNSceneRenderer, didApplyAnimationsAtTime time: TimeInterval) {
         scnViewOriginDelegate?.renderer?(renderer, didApplyAnimationsAtTime: time)
     }
     
-    public func renderer(_ renderer: SCNSceneRenderer, didSimulatePhysicsAtTime time: TimeInterval) {
+    func renderer(_ renderer: SCNSceneRenderer, didSimulatePhysicsAtTime time: TimeInterval) {
         scnViewOriginDelegate?.renderer?(renderer, didSimulatePhysicsAtTime: time)
     }
     
     @available(iOS 11.0, *)
-    public func renderer(_ renderer: SCNSceneRenderer, didApplyConstraintsAtTime time: TimeInterval) {
+    func renderer(_ renderer: SCNSceneRenderer, didApplyConstraintsAtTime time: TimeInterval) {
         scnViewOriginDelegate?.renderer?(renderer, didApplyConstraintsAtTime: time)
     }
     
-    public func renderer(_ renderer: SCNSceneRenderer, willRenderScene scene: SCNScene, atTime time: TimeInterval) {
+    func renderer(_ renderer: SCNSceneRenderer, willRenderScene scene: SCNScene, atTime time: TimeInterval) {
         if currentFrameIndex % frameInterval == 0 {
             renderToPixelBuffer(atTime: time)
         }
         currentFrameIndex += 1
+        
         scnViewOriginDelegate?.renderer?(renderer, willRenderScene: scene, atTime: time)
     }
     
-    public func renderer(_ renderer: SCNSceneRenderer, didRenderScene scene: SCNScene, atTime time: TimeInterval) {
+    func renderer(_ renderer: SCNSceneRenderer, didRenderScene scene: SCNScene, atTime time: TimeInterval) {
         scnViewOriginDelegate?.renderer?(renderer, didRenderScene: scene, atTime: time)
     }
 }

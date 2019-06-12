@@ -1,5 +1,5 @@
 //
-//  SourceConsumer.swift
+//  ProducerConsumer.swift
 //  MovieRecorder
 //
 //  Created by Evan Xie on 2019/6/4.
@@ -14,7 +14,7 @@ public enum MovieTrackType: Int {
     case video
 }
 
-/// The data struct for representing sample data which auido/video source produces.
+/// The data struct for representing sample data which auido/video producer produces.
 public enum MediaSample {
     case audioSampleBuffer(CMSampleBuffer)
     case videoSampleBuffer(CMSampleBuffer)
@@ -78,41 +78,43 @@ public typealias AudioEncodingSettings = [String: Any]
  */
 public typealias VideoEncodingSettings = [String: Any]
 
-/// The sample data encoding settings which is recommended by source.
+/// The sample data encoding settings which is recommended by producer.
 public enum MediaSampleRecommendedEncodingSettings {
     case audio(AudioEncodingSettings)
     case video(VideoEncodingSettings)
-    case audioVideo(AudioEncodingSettings, VideoEncodingSettings)
 }
 
-//MARK: - Audio/Video Sample Source
+//MARK: - Audio/Video Sample Producer
 
-public enum SampleSourceType: Int {
+public enum ProducerType: Int {
     
-    /// Only producing audio sample data.
+    /// Producing audio sample data.
     case audio
     
-    /// Only producing video sample data.
+    /// Producing video sample data.
     case video
-    
-    /// Producing both audio and video data.
-    case audioVideo
 }
 
-public protocol SampleSource {
-    
-    var sourceType: SampleSourceType { get }
-    
-    var sampleConsumers: SampleConsumerContainer { get }
+public protocol MediaSampleProducer {
     
     var isRunning: Bool { get }
+    
+    var producerType: ProducerType { get }
+    
+    var sampleConsumers: SampleConsumerContainer { get }
     
     func startRunning() throws
     
     func stopRunning()
+    
+    func recommendedSettingsForFileType(_ fileType: MovieFileType) -> [String: Any]?
 }
 
-public extension SampleSource {
+public extension MediaSampleProducer {
+    
+    func recommendedSettingsForFileType(_ fileType: MovieFileType) -> [String: Any]? {
+        return nil
+    }
     
     func addMediaSampleConsumer(_ consumer: MediaSampleConsumer) {
         sampleConsumers.append(consumer)
@@ -127,16 +129,16 @@ public extension SampleSource {
     }
     
     func notifyConsumersWhenMediaSampleReady(_ mediaSample: MediaSample) {
-        let source = self
+        let producer = self
         sampleConsumers.forEach {
-            $0.consumeMediaSample(mediaSample, source: source)
+            $0.consumeMediaSample(mediaSample, producer: producer)
         }
     }
     
-    func notifyConsumersWhenErrorOccurred(_ error: Swift.Error) {
-        let source = self
+    func notifyConsumersWhenProducerOccursError(_ error: Swift.Error) {
+        let producer = self
         sampleConsumers.forEach {
-            $0.handleSampleSourceError(error, source: source)
+            $0.handleMediaSampleProducerError(error, producer: producer)
         }
     }
 }
@@ -145,9 +147,9 @@ public extension SampleSource {
 
 public protocol MediaSampleConsumer: NSObjectProtocol {
     
-    func consumeMediaSample(_ mediaSample: MediaSample, source: SampleSource)
+    func consumeMediaSample(_ mediaSample: MediaSample, producer: MediaSampleProducer)
     
-    func handleSampleSourceError(_ error: Swift.Error, source: SampleSource)
+    func handleMediaSampleProducerError(_ error: Swift.Error, producer: MediaSampleProducer)
 }
 
 public class SampleConsumerContainer: Sequence {

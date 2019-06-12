@@ -18,10 +18,10 @@ class CameraViewController: RecorderViewController {
 //        let audioConfiguration = AudioTrackConfiguration()
 //        let videoConfiguration = VideoTrackConfiguration(framerate: 30, resolution: CGSize(width: 3840, height: 2160))
 //        let trackConfiguration = MovieTrackConfiguration.audioAndVideo(audioConfiguration, videoConfiguration)
-//        trackDataProvider = AVCameraSession(cameraSensor: .back(.hd4K3840x2160), trackConfiguration: trackConfiguration)
+//        trackDataProvider = AVCameraSession(sensor: .back(.hd4K3840x2160), trackConfiguration: trackConfiguration)
 //        
 //        let preview = view as! PreviewView
-//        recorderDidStated = { [weak self] in
+//        recorderDidStart = { [weak self] in
 //            preview.session = self?.trackDataProvider.session
 //        }
     }

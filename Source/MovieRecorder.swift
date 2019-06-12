@@ -41,26 +41,45 @@ public enum MovieFileType: Int {
  It's full asychronously, non-block.
  
  How does movie recorder work?
- 1. Create movie recorder, add the media sample source.
+ 1. Create movie recorder, add the media sample producer.
  2. Setup error handler to handle the errors
- 3. Start recording, movie recorder will setup all the things, and start sample source.
+ 3. Start recording, movie recorder will setup all the things, and start sample producer.
  4. Stop recording, get the final movie file.
  */
-public final class MovieRecorder: NSObject {
+public final class MovieRecorder: NSObject, Recordable {
+    
+    fileprivate enum Producers {
+        case audio(MediaSampleProducer)
+        case video(MediaSampleProducer)
+        case audioVideo(MediaSampleProducer, MediaSampleProducer)
+        
+        func stopRunning() {
+            switch self {
+            case let .audio(audio):
+                audio.stopRunning()
+            case let .video(video):
+                video.stopRunning()
+            case let .audioVideo(audio, video):
+                audio.stopRunning()
+                video.stopRunning()
+            }
+        }
+    }
     
     fileprivate let movieFileURL: URL
     fileprivate let fileType: MovieFileType
     fileprivate var movieWriter: MovieWriter?
     
-    fileprivate var internalState = State.stopped
     fileprivate var lock = MutexLock()
+    fileprivate var internalState = State.stopped
+    fileprivate var producers: Producers
     
     fileprivate var startCompletionCallback: (() -> Void)?
     fileprivate var stopCompletionCallback: ((URL) -> Void)?
     
-    fileprivate var hasAudioTrack = true
     fileprivate var audioFormatDescription: CMAudioFormatDescription?
     fileprivate var videoFormatDescription: CMVideoFormatDescription?
+    fileprivate var asyncQueue: DispatchQueue
     
     /// Get current recorder state, it's thread safe.
     public var state: State {
@@ -81,12 +100,30 @@ public final class MovieRecorder: NSObject {
     /// You can specify the creator, copyright, and so on, by setting this metadata.
     public var metadata: [AVMetadataItem]?
     
-    public init(outputURL: URL, sampleSources: [SampleSource], movieFileType: MovieFileType = .mov) {
-        guard sampleSources.count > 0 else {
-            fatalError("Movie recorder need sample data source.")
+    public init(outputURL: URL, audioProducer: MediaSampleProducer? = nil, videoProducer: MediaSampleProducer? = nil, movieFileType: MovieFileType = .mov) {
+        if audioProducer == nil && videoProducer == nil {
+            fatalError("Movie recorder need MediaSampleProducer.")
         }
+        
         movieFileURL = outputURL
         fileType = movieFileType
+        asyncQueue = DispatchQueue(label: "MovieRecorder.AsyncQueue")
+        
+        if let producer = audioProducer, producer.producerType != .audio {
+            fatalError("Invalid audio producer type.")
+        }
+        
+        if let producer = videoProducer, producer.producerType != .video {
+            fatalError("Invalid video producer type.")
+        }
+        
+        if audioProducer != nil && videoProducer != nil {
+            producers = .audioVideo(audioProducer!, videoProducer!)
+        } else if audioProducer != nil {
+            producers = .audio(audioProducer!)
+        } else {
+            producers = .video(videoProducer!)
+        }
     }
     
     /**
@@ -116,30 +153,50 @@ public final class MovieRecorder: NSObject {
 
 extension MovieRecorder: MediaSampleConsumer {
     
-    public func consumeMediaSample(_ mediaSample: MediaSample, source: SampleSource) {
-        
+    fileprivate func registerConsumer() {
+        switch producers {
+        case let .audio(audio):
+            audio.addMediaSampleConsumer(self)
+        case let .video(video):
+            video.addMediaSampleConsumer(self)
+        case let .audioVideo(audio, video):
+            audio.addMediaSampleConsumer(self)
+            video.addMediaSampleConsumer(self)
+        }
     }
     
-    public func handleSampleSourceError(_ error: Swift.Error, source: SampleSource) {
+    fileprivate func unregisterConsumer() {
+        switch producers {
+        case let .audio(audio):
+            audio.removeMediaSampleConsumer(self)
+        case let .video(video):
+            video.removeMediaSampleConsumer(self)
+        case let .audioVideo(audio, video):
+            audio.removeMediaSampleConsumer(self)
+            video.removeMediaSampleConsumer(self)
+        }
+    }
+    
+    public func consumeMediaSample(_ mediaSample: MediaSample, producer: MediaSampleProducer) {
+        extractFormatDescriptionIfNeed(from: mediaSample)
         
+        // If movie writer not start, but the audio/video format description are both obtained,
+        // so, we can start the writer.
+        if movieWriter == nil && isReadyForSettingUpWriter {
+            startWriter()
+        } else if movieWriter != nil {
+            appendMediaSample(mediaSample)
+        }
+    }
+    
+    public func handleMediaSampleProducerError(_ error: Swift.Error, producer: MediaSampleProducer) {
+        stopCompletionCallback = nil
+        finishWriter()
+        handleError(error)
     }
 }
 
 public extension MovieRecorder {
-    
-    typealias ErrorHandler = (_ error: Error) -> Void
-    
-    enum Error: Swift.Error {
-        
-        /// Fail to start recorder
-        case failedToStart(underlyingError: Swift.Error)
-        
-        /// Fail to stop recorder
-        case failedToStop(underlyingError: Swift.Error)
-        
-        /// Fail to write more audio/video buffer data when recording.
-        case failedToRecord(underlyingError: Swift.Error)
-    }
     
     enum State: Int, CustomStringConvertible {
         case starting
@@ -182,7 +239,7 @@ extension MovieRecorder: MovieWriterDelegate {
     }
     
     func movieWriterDidFail(_ writer: MovieWriter, error: MovieWriter.Error) {
-        stopProvider()
+        stopProducers()
         handleError(error)
         teardownWriter()
     }
@@ -191,11 +248,14 @@ extension MovieRecorder: MovieWriterDelegate {
 fileprivate extension MovieRecorder {
     
     var isReadyForSettingUpWriter: Bool {
-        if hasAudioTrack {
+        switch producers {
+        case .audio:
+            return audioFormatDescription != nil
+        case .video:
+            return videoFormatDescription != nil
+        case .audioVideo:
             return audioFormatDescription != nil && videoFormatDescription != nil
         }
-        
-        return videoFormatDescription != nil
     }
     
     func extractFormatDescriptionIfNeed(from mediaSample: MediaSample) {
@@ -216,38 +276,33 @@ fileprivate extension MovieRecorder {
     }
     
     func prepareToStart() {
-        
-//        dataProvider.errorHandler = { [weak self] (error) in
-//            self?.stopCompletionCallback = nil
-//            self?.finishWriter()
-//            self?.handleError(error)
-//        }
-//
-//        dataProvider.trackDataHandler = { [weak self] (trackData) in
-//            guard let strongSelf = self else { return}
-//            strongSelf.extractFormatDescriptionIfNeed(from: trackData)
-//
-//            // If movie writer not start, but the audio/video format description are both obtained,
-//            // so, we can start the writer.
-//            if strongSelf.movieWriter == nil && strongSelf.isReadyForSettingUpWriter {
-//                strongSelf.startWriter()
-//            } else if strongSelf.movieWriter != nil {
-//                strongSelf.appendTrackData(trackData)
-//            }
-//        }
-//
-//        dataProvider.startRunning { }
+        asyncQueue.async { [weak self] in
+            guard let strongSelf = self else { return }
+            
+            do {
+                strongSelf.registerConsumer()
+                
+                switch strongSelf.producers {
+                case let .audio(producer):
+                    try producer.startRunning()
+                case let .video(producer):
+                    try producer.startRunning()
+                case let .audioVideo(audioProducer, videoProducer):
+                    try audioProducer.startRunning()
+                    try videoProducer.startRunning()
+                }
+            } catch {
+                strongSelf.handleError(error)
+            }
+        }
     }
     
     func prepareToStop() {
-        stopProvider()
-        finishWriter()
-    }
-    
-    func stopProvider() {
-//        dataProvider.errorHandler = nil
-//        dataProvider.trackDataHandler = nil
-//        dataProvider.stopRunning { }
+        unregisterConsumer()
+        asyncQueue.async { [weak self] in
+            self?.stopProducers()
+            self?.finishWriter()
+        }
     }
     
     func startWriter() {
@@ -274,6 +329,10 @@ fileprivate extension MovieRecorder {
         case let .videoPixelBuffer(buffer, time):
             movieWriter?.append(videoPixelBuffer: buffer, presentationTime: time)
         }
+    }
+    
+    func stopProducers() {
+        producers.stopRunning()
     }
     
     func finishWriter() {

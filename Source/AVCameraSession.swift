@@ -8,179 +8,168 @@
 import AVFoundation
 import CoreVideo
 
+/**
+ A simple wrapper for AVCaptureSession. This class just provides some convenient functions for configuring session,
+ but it doesn't do any session configuration automatically by itself.
+ 
+ - Note:
+ After creating AVCameraSession, you can configure the inputs and outputs according to your own use case.
+ Please do any configuration by invoking `configureSession` function.
+ */
 public class AVCameraSession: NSObject {
-    
-    fileprivate var session: AVCaptureSession
+
     fileprivate let sessionqueue: DispatchQueue
     fileprivate var running: Bool = false
-    fileprivate var lock = MutexLock()
     
-    fileprivate var cameraSensor: CameraSensor
-    fileprivate var runningMode: RunningMode
+    public typealias Block = () -> Void
+    public typealias ConfigurationBlock = () throws -> Void
+    public typealias FailureBlock = (Swift.Error) -> Void
+    
+    public let session: AVCaptureSession
     
     public var isRunning: Bool {
-        lock.lock()
-        defer { lock.unlock() }
         return running
     }
     
-    public init(cameraSensor: CameraSensor, runningMode: RunningMode) {
-        self.cameraSensor = cameraSensor
-        self.sessionqueue = DispatchQueue(label: "AVCameraSession.SessionQueue", qos: .userInteractive)
-        self.runningMode = runningMode
+    public override init() {
+        self.sessionqueue = DispatchQueue(label: "AVCameraSession.SessionQueue")
         self.session = AVCaptureSession()
         super.init()
     }
     
-    public func startRunning(completionBlcok: @escaping (() -> Void)) {
-        guard !isRunning else {
-            completionBlcok()
-            return
-        }
+    public func startRunning(_ completionBlcok: (() -> Void)? = nil) {
+        guard !running else { return }
+        running = true
         
-        sessionqueue.async {
+        sessionqueue.async { [weak self] in
+            self?.session.startRunning()
+            completionBlcok?()
+        }
+    }
+    
+    public func stopRunning(_ completionBlcok: (() -> Void)? = nil) {
+        guard running else { return }
+        running = false
+        
+        sessionqueue.async { [weak self] in
+            self?.session.stopRunning()
+            completionBlcok?()
+        }
+    }
+    
+    public func configureSession(configurationBlock: @escaping ConfigurationBlock, onSuccees: Block? = nil, onFailure: FailureBlock? = nil) {
+        sessionqueue.async { [weak self] in
+            guard let strongSelf = self else { return }
             do {
-                try self.setupSession()
-                self.session.startRunning()
-                self.running = true
-                completionBlcok()
+                strongSelf.session.beginConfiguration()
+                try configurationBlock()
+                strongSelf.session.commitConfiguration()
+                onSuccees?()
             } catch {
-                
+                strongSelf.session.commitConfiguration()
+                onFailure?(error)
             }
         }
     }
-    
-    public func stopRunning(completionBlcok: @escaping (() -> Void)) {
-        guard isRunning else {
-            completionBlcok()
-            return
-        }
-        
-        sessionqueue.async {
-            self.session.stopRunning()
-            self.running = false
-            completionBlcok()
-        }
-    }
-    
-    public func switchRunningMode(_ newRunningMode: RunningMode, completionBlcok: @escaping (() -> Void)) {
-        
-    }
-    
-    public func switchCameraSensor(_ newCameraSensor: CameraSensor, completionBlcok: @escaping (() -> Void)) {
-        
-    }
 }
 
-extension AVCameraSession: AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureVideoDataOutputSampleBufferDelegate {
-    
-    public func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        if output.connection(with: .audio) == connection {
-            
-        } else if output.connection(with: .video) == connection {
-            
-        }
-    }
-}
+//MARK: - AVCaptureSession Configuraiton
 
-//MARK: - AVCaptureSession Setup/Tear Down
-
-fileprivate extension AVCameraSession {
+public extension AVCameraSession {
     
-    func getAudioDevice() throws -> AVCaptureDevice {
-        guard let audioDevice = AVCaptureDevice.default(for: .audio) else {
-            throw Error.captureDeviceUnavailable(.audioDeviceUnavailable)
-        }
-        return audioDevice
-    }
+    /*:
+     All the configuration functions in this extension should be invoked in the
+     `configurationBlock` of `configureSession` function.
+     */
     
-    func getVideoDevice() throws -> AVCaptureDevice {
-        guard let videoDevice = AVCaptureDevice.default(for: .video) else {
-            throw Error.captureDeviceUnavailable(.videoDeviceUnavailable)
-        }
-        return videoDevice
-    }
-    
-    func addDeviceInput(_ captureDevice: AVCaptureDevice) throws {
-        let deviceInput = try AVCaptureDeviceInput(device: captureDevice)
+    /**
+     Should be invoked in the `configurationBlock` of `configureSession` function.
+     */
+    @discardableResult
+    func addDeviceInput(for device: AVCaptureDevice) throws -> AVCaptureDeviceInput {
+        let deviceInput = try AVCaptureDeviceInput(device: device)
         guard session.canAddInput(deviceInput) else {
             throw Error.failToAddDeviceInput
         }
         session.addInput(deviceInput)
+        return deviceInput
     }
     
-    func addAudioDataOutput() {
-        let audioOutput = AVCaptureAudioDataOutput()
-        audioOutput.setSampleBufferDelegate(self, queue: sessionqueue)
-        session.addOutput(audioOutput)
-    }
-    
-    func addVideoDataOutput() {
-        let videoOutput = AVCaptureVideoDataOutput()
-        videoOutput.setSampleBufferDelegate(self, queue: sessionqueue)
-        session.addOutput(videoOutput)
-    }
-    
-    func setupAudioDataOutputPipeline() throws {
-        let audioDevice = try getAudioDevice()
-        try addDeviceInput(audioDevice)
-        addAudioDataOutput()
-    }
-    
-    func setupVideoDataOutputPipeline() throws {
-        let videoDevice = try getVideoDevice()
-        try addDeviceInput(videoDevice)
-        addVideoDataOutput()
-    }
-    
-    func setupSession() throws {
-        
-        session.beginConfiguration()
-        switch runningMode {
-        case let .audio(configuration):
-            break
-        case let .video(configuration):
-            break
-        case let .audioVideo(AudioConfiguration, videoConfiguration):
-            break
+    /**
+     Should be invoked in the `configurationBlock` of `configureSession` function.
+     */
+    @discardableResult
+    func addAudioDeviceInput() throws -> AVCaptureDeviceInput {
+        guard let device = AVCaptureDevice.default(for: .audio) else {
+            throw Error.captureDeviceUnavailable(.audioDeviceUnavailable)
         }
+        return try addDeviceInput(for: device)
+    }
+    
+    /**
+     Should be invoked in the `configurationBlock` of `configureSession` function.
+     */
+    @discardableResult
+    func addVideoDeviceInput(for sensor: CameraSensor) throws -> AVCaptureDeviceInput {
+        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: sensor.position) else {
+            throw Error.captureDeviceUnavailable(.videoDeviceUnavailable)
+        }
+        let input = try addDeviceInput(for: device)
         
-        
-//        if enablesAudio {
-//            try setupAudioDataOutputPipeline()
-//        }
-        
-        try setupVideoDataOutputPipeline()
-        
-        let preset = cameraSensor.preset
-        
+        let preset = sensor.preset
         guard session.canSetSessionPreset(preset) else {
-            throw Error.unsupportedPreset(preset)
+            throw Error.unsupportedPreset(preset, sensor.position)
         }
         session.sessionPreset = preset
-        
-        session.commitConfiguration()
+        return input
     }
-}
-
-fileprivate extension AVCameraSession {
     
-    func getSourceType(_ isAudioEnabled: Bool) -> SampleSourceType {
-        if isAudioEnabled {
-            return .audioVideo
+    /**
+     Should be invoked in the `configurationBlock` of `configureSession` function.
+     */
+    func addOutput(_ output: AVCaptureOutput) throws {
+        guard session.canAddOutput(output) else {
+            throw Error.failToAddOutput
         }
-        return .video
+        session.addOutput(output)
     }
     
-    func updateSourceType(_ newType: SampleSourceType) {
-        guard !isRunning else { return }
+    /**
+     Should be invoked in the `configurationBlock` of `configureSession` function.
+     */
+    func addAudioDataOutput(_ output: AVCaptureAudioDataOutput) throws {
+        try addOutput(output)
     }
     
-    func updateCameraSensor(_ newCameraSensor: CameraSensor) {
-        guard cameraSensor != newCameraSensor else { return }
-        guard !isRunning else { return }
+    /**
+     Should be invoked in the `configurationBlock` of `configureSession` function.
+     */
+    func addVideoDataOutput(_ output: AVCaptureVideoDataOutput) throws {
+        try addOutput(output)
     }
     
+    /**
+     Should be invoked in the `configurationBlock` of `configureSession` function.
+     */
+    func addMovieFileOutput(_ output: AVCaptureMovieFileOutput) throws {
+        try addOutput(output)
+    }
+    
+    /**
+     Should be invoked in the `configurationBlock` of `configureSession` function.
+     */
+    func removeAllInputsAndOutputs() {
+        let inputs = session.inputs
+        let outputs = session.outputs
+        
+        inputs.forEach { (input) in
+            session.removeInput(input)
+        }
+        
+        outputs.forEach { (output) in
+            session.removeOutput(output)
+        }
+    }
 }
 
 //MARK: - Public Data Struct Definition
@@ -189,8 +178,9 @@ extension AVCameraSession {
     
     public enum Error: Swift.Error {
         case captureDeviceUnavailable(CaptureDeviceUnavailableReason)
+        case unsupportedPreset(AVCaptureSession.Preset, AVCaptureDevice.Position)
         case failToAddDeviceInput
-        case unsupportedPreset(AVCaptureSession.Preset)
+        case failToAddOutput
         case internalError(NSError)
         
         public enum CaptureDeviceUnavailableReason: Int {
@@ -233,34 +223,5 @@ extension AVCameraSession {
         public static func != (lhs: CameraSensor, rhs: CameraSensor) -> Bool {
             return !(lhs == rhs)
         }
-    }
-    
-    public struct AudioConfiguration: Equatable {
-        public static func == (lhs: AudioConfiguration, rhs: AudioConfiguration) -> Bool {
-            return true
-        }
-        
-        public static func != (lhs: AudioConfiguration, rhs: AudioConfiguration) -> Bool {
-            return !(lhs == rhs)
-        }
-    }
-    
-    public struct VideoConfiguration: Equatable {
-        public var preferredFramerate: Int
-        public var pixelFormat: OSStatus
-        
-        public static func == (lhs: VideoConfiguration, rhs: VideoConfiguration) -> Bool {
-            return (lhs.preferredFramerate == rhs.preferredFramerate) && (lhs.pixelFormat == rhs.pixelFormat)
-        }
-        
-        public static func != (lhs: VideoConfiguration, rhs: VideoConfiguration) -> Bool {
-            return !(lhs == rhs)
-        }
-    }
-    
-    public enum RunningMode {
-        case audio(AudioConfiguration)
-        case video(VideoConfiguration)
-        case audioVideo(AudioConfiguration, VideoConfiguration)
     }
 }

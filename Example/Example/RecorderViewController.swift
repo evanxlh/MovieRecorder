@@ -15,7 +15,7 @@ class RecorderViewController: UIViewController {
         print("\(self) deinit")
     }
     
-    var recorder: MovieRecorder?
+    var recorder: Recordable?
     
     lazy var recordButton: UIButton = {
         let button = UIButton(type: .custom)
@@ -29,7 +29,12 @@ class RecorderViewController: UIViewController {
         return button
     }()
     
-    var recorderDidStated: (() -> Void)?
+    var recorderDidStart: (() -> Void)?
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        createRecorder()
+    }
     
     override var shouldAutorotate: Bool {
         return true
@@ -71,27 +76,25 @@ class RecorderViewController: UIViewController {
     }
     
     @objc private func recorderButtonTapped(_ button: UIButton) {
-        if recorder == nil {
-            startRecording()
-        } else {
+        if recorder!.isRecording {
             stopRecording()
+        } else {
+            startRecording()
         }
     }
     
     func createRecorder() {
-        
+        // Implement in subclass.
     }
     
     func startRecording() {
         
         let button = recordButton
         button.isEnabled = false
-        
-        createRecorder()
         recorder?.startRecording(completionBlock: { [weak self] in
             button.setTitle("STOP", for: .normal)
             button.isEnabled = true
-            self?.recorderDidStated?()
+            self?.recorderDidStart?()
         })
     }
     
@@ -109,8 +112,6 @@ class RecorderViewController: UIViewController {
             self?.present(playerViewController, animated: true, completion: {
                 player.play()
             })
-            
-            self?.recorder = nil
         })
     }
 }

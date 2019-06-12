@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import  CoreGraphics
 
 internal final class MutexLock {
     
@@ -32,5 +33,12 @@ internal final class MutexLock {
         pthread_mutex_lock(&internalLock)
         block()
         pthread_mutex_unlock(&internalLock)
+    }
+}
+
+internal extension CGSize {
+    
+    func scaleBy(_ scalar: CGFloat) -> CGSize {
+        return CGSize(width: width * scalar, height: height * scalar)
     }
 }

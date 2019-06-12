@@ -62,7 +62,7 @@ internal final class PixelBufferPool {
      */
      func createPixelBuffer() throws -> CVPixelBuffer {
         var pixelBuffer: CVPixelBuffer?
-        let result = CVPixelBufferPoolCreatePixelBufferWithAuxAttributes(nil, pool, auxAttributes, &pixelBuffer)
+        let result = CVPixelBufferPoolCreatePixelBufferWithAuxAttributes(kCFAllocatorDefault, pool, auxAttributes, &pixelBuffer)
         guard result == kCVReturnSuccess else {
             throw CoreVideoError.failure(CVReturnValue(result))
         }
@@ -89,7 +89,7 @@ internal final class PixelBufferPool {
         let dataSize = CVPixelBufferGetDataSize(pixelBuffer)
         let destAddress = CVPixelBufferGetBaseAddress(created)
         let srcAddress = CVPixelBufferGetBaseAddress(pixelBuffer)
-        destAddress?.copyMemory(from: srcAddress!, byteCount: dataSize)
+        memcpy(destAddress, srcAddress, dataSize)
         CVPixelBufferUnlockBaseAddress(created, [])
         CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
         
