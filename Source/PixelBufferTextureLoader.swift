@@ -136,11 +136,11 @@ public final class PixelBufferTextureLoader {
     }
     
     public func loadTexture(from pixelBuffer: CVPixelBuffer, usingSRGB: Bool = true) -> MetalTexture? {
-        CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
-        defer {
-            CVMetalTextureCacheFlush(textureCache, 0)
-            CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
-        }
+//        CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
+//        defer {
+//            CVMetalTextureCacheFlush(textureCache, 0)
+//            CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
+//        }
         
         let pixelFormat = CVPixelBufferGetPixelFormatType(pixelBuffer)
         switch pixelFormat {
@@ -158,6 +158,10 @@ public final class PixelBufferTextureLoader {
         }
         
         return nil
+    }
+    
+    public func flush() {
+        CVMetalTextureCacheFlush(textureCache, 0)
     }
 }
 

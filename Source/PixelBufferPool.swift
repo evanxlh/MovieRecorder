@@ -58,7 +58,7 @@ internal final class PixelBufferPool {
      Create pixel buffer from buffer pool.
      
      If the number of pixel buffer in buffer pool exceeds the the given `pixelBufferCount`,
-     throws `AVError.pixelBuffer(CVReturn)`.
+     throws `CoreVideoError.failure(CVReturnValue)`.
      */
      func createPixelBuffer() throws -> CVPixelBuffer {
         var pixelBuffer: CVPixelBuffer?
@@ -71,8 +71,9 @@ internal final class PixelBufferPool {
     
     /**
      Create pixel buffer from a given pixel buffer.
-     
      The given pixel buffer must has the same size dimension with pixel buffer pool size dimension.
+     
+     - Note: Copy a pixel buffer to another pixel buffer is a time-consuming task.
      */
     func createPixelBuffer(from pixelBuffer: CVPixelBuffer) throws -> CVPixelBuffer {
         
