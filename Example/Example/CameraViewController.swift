@@ -6,34 +6,46 @@
 //
 
 import UIKit
+import MovieRecorder
 
 class CameraViewController: RecorderViewController {
     
-//    var trackDataProvider: AVCameraSession!
+    var session: AVCameraSession!
     
     override func viewDidLoad() {
+        
+        session = AVCameraSession()
+        try! session.useAudioDeviceInput()
+        try! session.useVideoDeviceInput(for: .back(.hd4K3840x2160))
+        
         super.viewDidLoad()
         
-        
-//        let audioConfiguration = AudioTrackConfiguration()
-//        let videoConfiguration = VideoTrackConfiguration(framerate: 30, resolution: CGSize(width: 3840, height: 2160))
-//        let trackConfiguration = MovieTrackConfiguration.audioAndVideo(audioConfiguration, videoConfiguration)
-//        trackDataProvider = AVCameraSession(sensor: .back(.hd4K3840x2160), trackConfiguration: trackConfiguration)
-//        
-//        let preview = view as! PreviewView
-//        recorderDidStart = { [weak self] in
-//            preview.session = self?.trackDataProvider.session
-//        }
+        let preview = view as! PreviewView
+        preview.session = session.session
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        session.startRunning()
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        session.stopRunning()
     }
     
     override func createRecorder() {
-//        let movieURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("MyMovie.mp4")
-//        recorder = MovieRecorder(outputURL: movieURL, trackDataProvider: trackDataProvider)
-//        recorder?.errorHandler = { [weak self] error in
-//            self?.recordButton.isEnabled = true
-//            self?.recordButton.setTitle("REC", for: .normal)
-//            self?.recorder = nil
-//            print("recorder error: \(error)")
-//        }
+        var movieURL = URL(fileURLWithPath: NSTemporaryDirectory())
+        movieURL = movieURL.appendingPathComponent("myMovie.mp4")
+        
+        recorder = AVCameraRecorder(session: session, enablesAudio: false, outputURL: movieURL)
+        recorder?.metadata = SCNViewRecorder.commonMetaldata(withCreator: "Evan Xie", copyrights: "Evan Xie, 2019")
+        
+        recorder?.errorHandler = { [weak self] error in
+            self?.recordButton.isEnabled = true
+            self?.recordButton.setTitle("REC", for: .normal)
+            self?.recorder = nil
+            print("recorder error: \(error)")
+        }
     }
 }

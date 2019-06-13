@@ -44,11 +44,12 @@ public final class SCNViewRecorder: Recordable {
     }
     
     public func startRecording(completionBlock: @escaping (() -> Void)) {
+        guard !isRecording else { return }
         
         if let session = audioSession, let producer = audioProducer {
             
             session.configureSession(configurationBlock: {
-                try session.addAudioDeviceInput()
+                try session.useAudioDeviceInput()
                 try session.addOutput(producer.output)
             }, onSuccees: {
                 session.startRunning { [weak self] in

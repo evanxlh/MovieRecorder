@@ -7,6 +7,7 @@
 
 import AVFoundation
 import CoreVideo
+import UIKit
 
 /**
  A simple wrapper for AVCaptureSession. This class just provides some convenient functions for configuring session,
@@ -26,6 +27,8 @@ public class AVCameraSession: NSObject {
     public typealias FailureBlock = (Swift.Error) -> Void
     
     public let session: AVCaptureSession
+    
+    public var sensor: CameraSensor?
     
     public var isRunning: Bool {
         return running
@@ -71,6 +74,40 @@ public class AVCameraSession: NSObject {
             }
         }
     }
+    
+    /**
+     Auto mirroring: Front camera is mirrored, back camera isn't.
+     
+     - Warning: Only valid after startRunning has been called
+     */
+    public func getVideoAffineTransform(from videoBufferOrientation: AVCaptureVideoOrientation, to orientation: AVCaptureVideoOrientation, isFrontCamera: Bool, withAutoMirroring mirror: Bool) -> CGAffineTransform {
+        
+        guard isRunning else {
+            fatalError("Get video affine transform after startRunning.")
+        }
+        
+        var transform = CGAffineTransform.identity
+        
+        // Calculate offsets from an arbitrary reference orientation (portrait)
+        let orientationAngleOffset = angleOffsetFromPortraitOrientationToOrientation(orientation)
+        let videoOrientationAngleOffset = angleOffsetFromPortraitOrientationToOrientation(videoBufferOrientation)
+        
+        // Find the difference in angle between the desired orientation and the video orientation
+        let angleOffset = orientationAngleOffset - videoOrientationAngleOffset
+        transform = CGAffineTransform(rotationAngle: angleOffset)
+        
+        if isFrontCamera {
+            if mirror {
+                transform = transform.scaledBy(x: -1, y: 1)
+            } else {
+                if UIInterfaceOrientation(rawValue: orientation.rawValue)!.isPortrait {
+                    transform = transform.rotated(by: .pi)
+                }
+            }
+        }
+        
+        return transform
+    }
 }
 
 //MARK: - AVCaptureSession Configuraiton
@@ -86,20 +123,7 @@ public extension AVCameraSession {
      Should be invoked in the `configurationBlock` of `configureSession` function.
      */
     @discardableResult
-    func addDeviceInput(for device: AVCaptureDevice) throws -> AVCaptureDeviceInput {
-        let deviceInput = try AVCaptureDeviceInput(device: device)
-        guard session.canAddInput(deviceInput) else {
-            throw Error.failToAddDeviceInput
-        }
-        session.addInput(deviceInput)
-        return deviceInput
-    }
-    
-    /**
-     Should be invoked in the `configurationBlock` of `configureSession` function.
-     */
-    @discardableResult
-    func addAudioDeviceInput() throws -> AVCaptureDeviceInput {
+    func useAudioDeviceInput() throws -> AVCaptureDeviceInput {
         guard let device = AVCaptureDevice.default(for: .audio) else {
             throw Error.captureDeviceUnavailable(.audioDeviceUnavailable)
         }
@@ -110,7 +134,7 @@ public extension AVCameraSession {
      Should be invoked in the `configurationBlock` of `configureSession` function.
      */
     @discardableResult
-    func addVideoDeviceInput(for sensor: CameraSensor) throws -> AVCaptureDeviceInput {
+    func useVideoDeviceInput(for sensor: CameraSensor) throws -> AVCaptureDeviceInput {
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: sensor.position) else {
             throw Error.captureDeviceUnavailable(.videoDeviceUnavailable)
         }
@@ -121,7 +145,15 @@ public extension AVCameraSession {
             throw Error.unsupportedPreset(preset, sensor.position)
         }
         session.sessionPreset = preset
+        self.sensor = sensor
         return input
+    }
+    
+    /**
+     Should be invoked in the `configurationBlock` of `configureSession` function.
+     */
+    func removeDeviceInput(_ input: AVCaptureDeviceInput) {
+        session.removeInput(input)
     }
     
     /**
@@ -159,13 +191,25 @@ public extension AVCameraSession {
      Should be invoked in the `configurationBlock` of `configureSession` function.
      */
     func removeAllInputsAndOutputs() {
+        removeAllOutputs()
+        removeAllInputs()
+    }
+    
+    /**
+     Should be invoked in the `configurationBlock` of `configureSession` function.
+     */
+    func removeAllInputs() {
         let inputs = session.inputs
-        let outputs = session.outputs
-        
         inputs.forEach { (input) in
             session.removeInput(input)
         }
-        
+    }
+    
+    /**
+     Should be invoked in the `configurationBlock` of `configureSession` function.
+     */
+    func removeAllOutputs() {
+        let outputs = session.outputs
         outputs.forEach { (output) in
             session.removeOutput(output)
         }
@@ -192,6 +236,10 @@ extension AVCameraSession {
     public enum CameraSensor: Equatable {
         case back(AVCaptureSession.Preset)
         case front(AVCaptureSession.Preset)
+        
+        public var isFront: Bool {
+            return position == .front
+        }
         
         public var preset: AVCaptureSession.Preset {
             switch self {
@@ -223,5 +271,39 @@ extension AVCameraSession {
         public static func != (lhs: CameraSensor, rhs: CameraSensor) -> Bool {
             return !(lhs == rhs)
         }
+    }
+}
+
+//MARK: - Private Functions
+
+fileprivate extension AVCameraSession {
+    
+    @discardableResult
+    func addDeviceInput(for device: AVCaptureDevice) throws -> AVCaptureDeviceInput {
+        let deviceInput = try AVCaptureDeviceInput(device: device)
+        guard session.canAddInput(deviceInput) else {
+            throw Error.failToAddDeviceInput
+        }
+        session.addInput(deviceInput)
+        return deviceInput
+    }
+    
+    final func angleOffsetFromPortraitOrientationToOrientation(_ orientation: AVCaptureVideoOrientation) -> CGFloat {
+        
+        var angle: CGFloat = 0.0
+        switch orientation {
+        case .portrait:
+            angle = 0.0
+        case .portraitUpsideDown:
+            angle = .pi
+        case .landscapeRight:
+            angle = -CGFloat.pi/2
+        case .landscapeLeft:
+            angle = .pi/2
+        @unknown default:
+            break
+        }
+        
+        return angle
     }
 }

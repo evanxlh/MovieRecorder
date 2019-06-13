@@ -8,6 +8,7 @@
 import AVFoundation
 import CoreMedia
 import CoreVideo
+import UIKit
 
 /**
  Video file container type.
@@ -48,6 +49,8 @@ public enum MovieFileType: Int {
  */
 public final class MovieRecorder: NSObject, Recordable {
     
+    //MARK: - Private Properties
+    
     fileprivate enum Producers {
         case audio(MediaSampleProducer)
         case video(MediaSampleProducer)
@@ -68,6 +71,7 @@ public final class MovieRecorder: NSObject, Recordable {
     
     fileprivate let movieFileURL: URL
     fileprivate let fileType: MovieFileType
+    fileprivate var videoTransform: CGAffineTransform? = nil
     fileprivate var movieWriter: MovieWriter?
     
     fileprivate var lock = MutexLock()
@@ -80,6 +84,20 @@ public final class MovieRecorder: NSObject, Recordable {
     fileprivate var audioFormatDescription: CMAudioFormatDescription?
     fileprivate var videoFormatDescription: CMVideoFormatDescription?
     fileprivate var asyncQueue: DispatchQueue
+    
+    //MARK: - Public APIs
+    
+    public enum State: Int, CustomStringConvertible {
+        case starting
+        case recording
+        case stopping
+        case stopped
+        case failed
+        
+        public var description: String {
+            return ["starting", "recording", "stopping", "stopped", "failed"][rawValue]
+        }
+    }
     
     /// Get current recorder state, it's thread safe.
     public var state: State {
@@ -124,6 +142,8 @@ public final class MovieRecorder: NSObject, Recordable {
         } else {
             producers = .video(videoProducer!)
         }
+        
+        super.init()
     }
     
     /**
@@ -150,6 +170,8 @@ public final class MovieRecorder: NSObject, Recordable {
         prepareToStop()
     }
 }
+
+//MARK: - Let MovieRecorder as media sample consumer
 
 extension MovieRecorder: MediaSampleConsumer {
     
@@ -178,7 +200,7 @@ extension MovieRecorder: MediaSampleConsumer {
     }
     
     public func consumeMediaSample(_ mediaSample: MediaSample, producer: MediaSampleProducer) {
-        extractFormatDescriptionIfNeed(from: mediaSample)
+        extractFormatDescriptionIfNeed(from: mediaSample, producer: producer)
         
         // If movie writer not start, but the audio/video format description are both obtained,
         // so, we can start the writer.
@@ -196,20 +218,7 @@ extension MovieRecorder: MediaSampleConsumer {
     }
 }
 
-public extension MovieRecorder {
-    
-    enum State: Int, CustomStringConvertible {
-        case starting
-        case recording
-        case stopping
-        case stopped
-        case failed
-        
-        public var description: String {
-            return ["starting", "recording", "stopping", "stopped", "failed"][rawValue]
-        }
-    }
-}
+//MARK: -  Adopt MovieWriterDelegate
 
 extension MovieRecorder: MovieWriterDelegate {
     
@@ -258,7 +267,7 @@ fileprivate extension MovieRecorder {
         }
     }
     
-    func extractFormatDescriptionIfNeed(from mediaSample: MediaSample) {
+    func extractFormatDescriptionIfNeed(from mediaSample: MediaSample, producer: MediaSampleProducer) {
         switch mediaSample {
         case let .audioSampleBuffer(buffer):
             if audioFormatDescription == nil {
@@ -267,6 +276,9 @@ fileprivate extension MovieRecorder {
         case let .videoSampleBuffer(buffer):
             if videoFormatDescription == nil {
                 videoFormatDescription = CMSampleBufferGetFormatDescription(buffer)
+                if let videoProducer = producer as? AVVideoProducer {
+                    videoTransform = videoProducer.videoTransform
+                }
             }
         case let .videoPixelBuffer(buffer, _):
             if videoFormatDescription == nil {
@@ -314,7 +326,7 @@ fileprivate extension MovieRecorder {
             movieWriter?.addAudioTrack(sourceFormat: audioFormat, encodingSettings: nil)
         }
         if let videoFormat = videoFormatDescription {
-            movieWriter?.addVideoTrack(sourceFormat: videoFormat, encodingSettings: nil, transform: nil)
+            movieWriter?.addVideoTrack(sourceFormat: videoFormat, encodingSettings: nil, transform: videoTransform)
         }
         
         movieWriter?.startWriting()
@@ -376,8 +388,9 @@ fileprivate extension MovieRecorder {
         internalState = newState
         return true
     }
-    
 }
+
+//MARK: - Private State Operations
 
 fileprivate extension MovieRecorder.State {
     

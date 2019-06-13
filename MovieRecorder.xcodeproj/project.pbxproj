@@ -31,6 +31,7 @@
 		204863772296947C002A8781 /* MovieWriter+Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 204863762296947C002A8781 /* MovieWriter+Internal.swift */; };
 		205341F922B1F77700E72CED /* VideoPixelBufferRender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 205341F822B1F77700E72CED /* VideoPixelBufferRender.swift */; };
 		205341FB22B221BD00E72CED /* VideoRenderShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 205341FA22B221BD00E72CED /* VideoRenderShader.metal */; };
+		205341FD22B23DB000E72CED /* AVCameraRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 205341FC22B23DB000E72CED /* AVCameraRecorder.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -60,6 +61,7 @@
 		204863762296947C002A8781 /* MovieWriter+Internal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MovieWriter+Internal.swift"; sourceTree = "<group>"; };
 		205341F822B1F77700E72CED /* VideoPixelBufferRender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPixelBufferRender.swift; sourceTree = "<group>"; };
 		205341FA22B221BD00E72CED /* VideoRenderShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = VideoRenderShader.metal; sourceTree = "<group>"; };
+		205341FC22B23DB000E72CED /* AVCameraRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVCameraRecorder.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -108,6 +110,7 @@
 			children = (
 				20400D22229F74C500056267 /* MovieRecorder.swift */,
 				2040EB8422AF44BA005BE8D7 /* SCNViewRecorder.swift */,
+				205341FC22B23DB000E72CED /* AVCameraRecorder.swift */,
 				2040EB8622AF44E9005BE8D7 /* MTKViewRecorder.swift */,
 				2040EB8822AF44FC005BE8D7 /* MTLTextureRecorder.swift */,
 				20459EEC22A69AB50013A57E /* ProducerConsumer.swift */,
@@ -246,6 +249,7 @@
 				2040EB8922AF44FC005BE8D7 /* MTLTextureRecorder.swift in Sources */,
 				202417CB229D5E0B00E38F84 /* CMSampleBufferExtension.swift in Sources */,
 				202417C6229D126D00E38F84 /* PixelBufferPool.swift in Sources */,
+				205341FD22B23DB000E72CED /* AVCameraRecorder.swift in Sources */,
 				205341FB22B221BD00E72CED /* VideoRenderShader.metal in Sources */,
 				2040EB9322AFA03C005BE8D7 /* MTLTextureProducer.swift in Sources */,
 				2040EB8722AF44E9005BE8D7 /* MTKViewRecorder.swift in Sources */,

@@ -28,9 +28,15 @@ public final class AVVideoProducer: NSObject, MediaSampleProducer {
     
     public var sampleConsumers = SampleConsumerContainer()
     
+    public var output: AVCaptureVideoDataOutput {
+        return forwarder.output
+    }
+    
     public var isRunning: Bool {
         return running
     }
+    
+    public var videoTransform: CGAffineTransform? = nil
     
     public init(videoQueue: DispatchQueue? = nil) {
         if videoQueue == nil {
