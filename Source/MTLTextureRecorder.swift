@@ -29,11 +29,11 @@ public final class MTLTextureRecorder: Recordable {
         set { internalRecorder.errorHandler = newValue }
     }
     
-    public init(texture: MTLTexture, enablesAudio: Bool = false, outputURL: URL) {
+    public init(device: MTLDevice, textureSize: CGSize, enablesAudio: Bool = false, outputURL: URL) {
         if enablesAudio {
             audioProducer = AVAudioProducer(audioQueue: nil)
         }
-        videoProducer = MTLTextureProducer()
+        videoProducer = MTLTextureProducer(device: device, textureSize: textureSize)
         internalRecorder = MovieRecorder(outputURL: outputURL, audioProducer: audioProducer, videoProducer: videoProducer, movieFileType: .mov)
     }
     

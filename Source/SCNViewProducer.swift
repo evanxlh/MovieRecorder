@@ -12,20 +12,14 @@ import AVFoundation
 
 internal final class SCNViewProducer: NSObject, MediaSampleProducer {
     
-    enum Error: Swift.Error {
-        case failToPrepareMetalRender
-        case failToRenderVideoBuffer
-    }
-    
     fileprivate var running: Bool = false
     fileprivate var queue: DispatchQueue
+    fileprivate var semaphore: DispatchSemaphore
     
     fileprivate weak var scnView: SCNView!
     fileprivate var scnViewOriginDelegate: SCNSceneRendererDelegate?
-    
-    fileprivate var textureLoader: PixelBufferTextureLoader
-    fileprivate var bufferPool: PixelBufferPool?
     fileprivate var videoRender: SCNRenderer?
+    fileprivate var render: VideoPixelBufferRender?
     
     fileprivate var videoSize: CGSize
     fileprivate var videoFramerate: Int
@@ -35,11 +29,6 @@ internal final class SCNViewProducer: NSObject, MediaSampleProducer {
     
     /// Track how many times which scnView renders.
     fileprivate var currentFrameIndex: Int = 0
-    
-    /// Record the timestamp which the first sample is produced.
-    fileprivate var startTime: TimeInterval? = nil
-    fileprivate let timeScale: CMTimeScale = 10000
-    fileprivate var semaphore: DispatchSemaphore
     
     //MARK: -  Properties
     
@@ -65,7 +54,6 @@ internal final class SCNViewProducer: NSObject, MediaSampleProducer {
         self.videoSize = videoSize
         self.videoFramerate = videoFramerate
         self.semaphore = DispatchSemaphore(value: 1)
-        self.textureLoader = PixelBufferTextureLoader(device: scnView.device!)
         let highQueue = DispatchQueue.global(qos: .userInteractive)
         self.queue = DispatchQueue(label: "SCNViewProducer.Queue", attributes: [], target: highQueue)
         
@@ -92,7 +80,7 @@ internal final class SCNViewProducer: NSObject, MediaSampleProducer {
         running = false
         giveBackRenderDelegate()
         videoRender = nil
-        bufferPool = nil
+        render = nil
     }
     
     func recommendedSettingsForFileType(_ fileType: MovieFileType) -> [String : Any]? {
@@ -119,8 +107,7 @@ internal final class SCNViewProducer: NSObject, MediaSampleProducer {
 fileprivate extension SCNViewProducer {
     
     func prepareMetalRender() throws {
-       
-        bufferPool = try PixelBufferPool(pixelBufferCount: 6, width: Int(videoSize.width), height: Int(videoSize.height), pixelFormat: kCVPixelFormatType_32BGRA)
+        render = try VideoPixelBufferRender(device: scnView.device!, textureSize: videoSize)
         videoRender = SCNRenderer(device: scnView.device, options: nil)
         videoRender!.scene = scnView.scene
     }
@@ -130,14 +117,12 @@ fileprivate extension SCNViewProducer {
         guard running else { return }
         
         semaphore.wait()
-        guard let commandBuffer = videoRender?.commandQueue?.makeCommandBuffer() else {
-            semaphore.signal()
-            return
-        }
         
         var res: (CVPixelBuffer, MTLTexture)? = nil
+        let commandBuffer = videoRender!.commandQueue!.makeCommandBuffer()!
+        
         do {
-            res = try prepareRenderTexture()
+            res = try render?.newRenderTexture()
         } catch {
             stopRunning()
             notifyConsumersWhenProducerOccursError(error)
@@ -146,84 +131,30 @@ fileprivate extension SCNViewProducer {
         }
         
         if res == nil {
+            // Pixel buffer pool is out of buffers, dropping frame.
             semaphore.signal()
             return
         }
         
-        let renderPass = MTLRenderPassDescriptor()
-        renderPass.colorAttachments[0].loadAction = .clear
-        renderPass.colorAttachments[0].storeAction = .store
+        commandBuffer.addCompletedHandler({ [weak self] (_) in
+            defer { self?.semaphore.signal() }
+            guard let strongSelf = self else { return }
+            
+            let timestamp = CMTime(seconds: time, preferredTimescale: 1000)
+            strongSelf.queue.async { [weak self] in
+                self?.notifyConsumersWhenMediaSampleReady(.videoPixelBuffer(res!.0, timestamp))
+            }
+        })
+        
+        let renderPass = render!.newRenderPass()
         renderPass.colorAttachments[0].texture = res!.1
-        renderPass.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1.0)
         
         let viewport = CGRect(origin: .zero, size: videoSize)
         videoRender?.scene = scnView.scene
         videoRender?.pointOfView = scnView.pointOfView
         videoRender?.render(atTime: time, viewport: viewport, commandBuffer: commandBuffer, passDescriptor: renderPass)
         
-        commandBuffer.addCompletedHandler({ [weak self] (_) in
-            defer { self?.semaphore.signal() }
-            guard let strongSelf = self else { return }
-            
-            let timestamp = CMTime(seconds: time, preferredTimescale: strongSelf.timeScale)
-            strongSelf.queue.async { [weak self] in
-                self?.notifyConsumersWhenMediaSampleReady(.videoPixelBuffer(res!.0, timestamp))
-            }
-        })
-        
         commandBuffer.commit()
-    }
-    
-    func outputPixelBuffer(from buffer: CVPixelBuffer, time: TimeInterval) {
-        
-        do {
-            let timestamp = CMTime(seconds: time, preferredTimescale: timeScale)
-            let pixelBuffer = try self.bufferPool!.createPixelBuffer(from: buffer)
-            queue.async { [weak self] in
-                self?.notifyConsumersWhenMediaSampleReady(.videoPixelBuffer(pixelBuffer, timestamp))
-            }
-        } catch {
-            print("Create pixel buffer failed: \(error)")
-        }
-    }
-    
-    func prepareRenderTexture() throws -> (CVPixelBuffer, MTLTexture)? {
-        
-        var targetPixelBuffer: CVPixelBuffer? = nil
-        do {
-            targetPixelBuffer = try bufferPool!.createPixelBuffer()
-        } catch {
-            switch error as! CoreVideoError {
-            case .failure(let errCode):
-                if errCode.value == kCVReturnWouldExceedAllocationThreshold {
-                    textureLoader.flush()
-                } else {
-                    throw error
-                }
-            }
-        }
-        
-        if targetPixelBuffer == nil {
-            do {
-                targetPixelBuffer = try bufferPool!.createPixelBuffer()
-            } catch {
-                switch error as! CoreVideoError {
-                case .failure(let errCode):
-                    if errCode.value == kCVReturnWouldExceedAllocationThreshold {
-                        print("Pixel buffer pool is out of buffers, dropping frame")
-                        return nil
-                    } else {
-                        throw error
-                    }
-                }
-            }
-        }
-        
-        guard let texture = textureLoader.loadTexture(from: targetPixelBuffer!, usingSRGB: true)?.bgraTexture else {
-            throw Error.failToRenderVideoBuffer
-        }
-        
-        return (targetPixelBuffer!, texture)
     }
 }
 

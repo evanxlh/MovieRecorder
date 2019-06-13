@@ -136,12 +136,6 @@ public final class PixelBufferTextureLoader {
     }
     
     public func loadTexture(from pixelBuffer: CVPixelBuffer, usingSRGB: Bool = true) -> MetalTexture? {
-//        CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
-//        defer {
-//            CVMetalTextureCacheFlush(textureCache, 0)
-//            CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
-//        }
-        
         let pixelFormat = CVPixelBufferGetPixelFormatType(pixelBuffer)
         switch pixelFormat {
         case kCVPixelFormatType_32BGRA:

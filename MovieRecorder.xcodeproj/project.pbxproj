@@ -17,12 +17,10 @@
 		2040EB8522AF44BA005BE8D7 /* SCNViewRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2040EB8422AF44BA005BE8D7 /* SCNViewRecorder.swift */; };
 		2040EB8722AF44E9005BE8D7 /* MTKViewRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2040EB8622AF44E9005BE8D7 /* MTKViewRecorder.swift */; };
 		2040EB8922AF44FC005BE8D7 /* MTLTextureRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2040EB8822AF44FC005BE8D7 /* MTLTextureRecorder.swift */; };
-		2040EB8B22AF4539005BE8D7 /* UIViewRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2040EB8A22AF4539005BE8D7 /* UIViewRecorder.swift */; };
 		2040EB8D22AF8117005BE8D7 /* AVVideoProducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2040EB8C22AF8117005BE8D7 /* AVVideoProducer.swift */; };
 		2040EB8F22AF9D3B005BE8D7 /* Recordable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2040EB8E22AF9D3B005BE8D7 /* Recordable.swift */; };
 		2040EB9122AFA027005BE8D7 /* MTKViewProducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2040EB9022AFA027005BE8D7 /* MTKViewProducer.swift */; };
 		2040EB9322AFA03C005BE8D7 /* MTLTextureProducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2040EB9222AFA03C005BE8D7 /* MTLTextureProducer.swift */; };
-		2040EB9522AFA049005BE8D7 /* UIViewProducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2040EB9422AFA049005BE8D7 /* UIViewProducer.swift */; };
 		2040EB9722AFAE1F005BE8D7 /* AVCameraSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2040EB9622AFAE1F005BE8D7 /* AVCameraSession.swift */; };
 		2041040F22A8E4570084178A /* AVAudioProducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2041040E22A8E4570084178A /* AVAudioProducer.swift */; };
 		20459EED22A69AB50013A57E /* ProducerConsumer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20459EEC22A69AB50013A57E /* ProducerConsumer.swift */; };
@@ -31,6 +29,8 @@
 		2048637122963E3B002A8781 /* Bitrate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2048637022963E3B002A8781 /* Bitrate.swift */; };
 		2048637522967747002A8781 /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2048637422967747002A8781 /* Helpers.swift */; };
 		204863772296947C002A8781 /* MovieWriter+Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 204863762296947C002A8781 /* MovieWriter+Internal.swift */; };
+		205341F922B1F77700E72CED /* VideoPixelBufferRender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 205341F822B1F77700E72CED /* VideoPixelBufferRender.swift */; };
+		205341FB22B221BD00E72CED /* VideoRenderShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 205341FA22B221BD00E72CED /* VideoRenderShader.metal */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,12 +44,10 @@
 		2040EB8422AF44BA005BE8D7 /* SCNViewRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SCNViewRecorder.swift; sourceTree = "<group>"; };
 		2040EB8622AF44E9005BE8D7 /* MTKViewRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MTKViewRecorder.swift; sourceTree = "<group>"; };
 		2040EB8822AF44FC005BE8D7 /* MTLTextureRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MTLTextureRecorder.swift; sourceTree = "<group>"; };
-		2040EB8A22AF4539005BE8D7 /* UIViewRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewRecorder.swift; sourceTree = "<group>"; };
 		2040EB8C22AF8117005BE8D7 /* AVVideoProducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVVideoProducer.swift; sourceTree = "<group>"; };
 		2040EB8E22AF9D3B005BE8D7 /* Recordable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recordable.swift; sourceTree = "<group>"; };
 		2040EB9022AFA027005BE8D7 /* MTKViewProducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MTKViewProducer.swift; sourceTree = "<group>"; };
 		2040EB9222AFA03C005BE8D7 /* MTLTextureProducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MTLTextureProducer.swift; sourceTree = "<group>"; };
-		2040EB9422AFA049005BE8D7 /* UIViewProducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewProducer.swift; sourceTree = "<group>"; };
 		2040EB9622AFAE1F005BE8D7 /* AVCameraSession.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AVCameraSession.swift; sourceTree = "<group>"; };
 		2041040E22A8E4570084178A /* AVAudioProducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVAudioProducer.swift; sourceTree = "<group>"; };
 		20459EEC22A69AB50013A57E /* ProducerConsumer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProducerConsumer.swift; sourceTree = "<group>"; };
@@ -60,6 +58,8 @@
 		2048637022963E3B002A8781 /* Bitrate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bitrate.swift; sourceTree = "<group>"; };
 		2048637422967747002A8781 /* Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helpers.swift; sourceTree = "<group>"; };
 		204863762296947C002A8781 /* MovieWriter+Internal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MovieWriter+Internal.swift"; sourceTree = "<group>"; };
+		205341F822B1F77700E72CED /* VideoPixelBufferRender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPixelBufferRender.swift; sourceTree = "<group>"; };
+		205341FA22B221BD00E72CED /* VideoRenderShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = VideoRenderShader.metal; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,6 +81,8 @@
 				202417CA229D5E0B00E38F84 /* CMSampleBufferExtension.swift */,
 				20400D4C229FE40700056267 /* CVPixelBufferExtension.swift */,
 				203D478122A7D29C0086F2A2 /* PixelBufferTextureLoader.swift */,
+				205341F822B1F77700E72CED /* VideoPixelBufferRender.swift */,
+				205341FA22B221BD00E72CED /* VideoRenderShader.metal */,
 			);
 			name = Helpers;
 			sourceTree = "<group>";
@@ -108,7 +110,6 @@
 				2040EB8422AF44BA005BE8D7 /* SCNViewRecorder.swift */,
 				2040EB8622AF44E9005BE8D7 /* MTKViewRecorder.swift */,
 				2040EB8822AF44FC005BE8D7 /* MTLTextureRecorder.swift */,
-				2040EB8A22AF4539005BE8D7 /* UIViewRecorder.swift */,
 				20459EEC22A69AB50013A57E /* ProducerConsumer.swift */,
 				2040EB8E22AF9D3B005BE8D7 /* Recordable.swift */,
 				20B26E0722979768008F382E /* Producer */,
@@ -147,7 +148,6 @@
 				202417C3229D0CD900E38F84 /* SCNViewProducer.swift */,
 				2040EB9022AFA027005BE8D7 /* MTKViewProducer.swift */,
 				2040EB9222AFA03C005BE8D7 /* MTLTextureProducer.swift */,
-				2040EB9422AFA049005BE8D7 /* UIViewProducer.swift */,
 				2040EB9622AFAE1F005BE8D7 /* AVCameraSession.swift */,
 			);
 			name = Producer;
@@ -241,12 +241,12 @@
 				20400D4D229FE40700056267 /* CVPixelBufferExtension.swift in Sources */,
 				202417C4229D0CD900E38F84 /* SCNViewProducer.swift in Sources */,
 				204863772296947C002A8781 /* MovieWriter+Internal.swift in Sources */,
+				205341F922B1F77700E72CED /* VideoPixelBufferRender.swift in Sources */,
 				2040EB8522AF44BA005BE8D7 /* SCNViewRecorder.swift in Sources */,
 				2040EB8922AF44FC005BE8D7 /* MTLTextureRecorder.swift in Sources */,
-				2040EB9522AFA049005BE8D7 /* UIViewProducer.swift in Sources */,
 				202417CB229D5E0B00E38F84 /* CMSampleBufferExtension.swift in Sources */,
 				202417C6229D126D00E38F84 /* PixelBufferPool.swift in Sources */,
-				2040EB8B22AF4539005BE8D7 /* UIViewRecorder.swift in Sources */,
+				205341FB22B221BD00E72CED /* VideoRenderShader.metal in Sources */,
 				2040EB9322AFA03C005BE8D7 /* MTLTextureProducer.swift in Sources */,
 				2040EB8722AF44E9005BE8D7 /* MTKViewRecorder.swift in Sources */,
 				20400D23229F74C500056267 /* MovieRecorder.swift in Sources */,
