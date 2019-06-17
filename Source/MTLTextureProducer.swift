@@ -5,7 +5,7 @@
 //  Created by Evan Xie on 2019/6/11.
 //
 
-#if canImport(Metal)
+#if !targetEnvironment(simulator)
 import Metal
 import CoreMedia
 import ReplayKit

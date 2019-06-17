@@ -28,11 +28,12 @@
 		2048637522967747002A8781 /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2048637422967747002A8781 /* Helpers.swift */; };
 		204863772296947C002A8781 /* MovieWriter+Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 204863762296947C002A8781 /* MovieWriter+Internal.swift */; };
 		205341F922B1F77700E72CED /* VideoPixelBufferRender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 205341F822B1F77700E72CED /* VideoPixelBufferRender.swift */; };
-		205341FB22B221BD00E72CED /* VideoRenderShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 205341FA22B221BD00E72CED /* VideoRenderShader.metal */; };
 		205341FD22B23DB000E72CED /* AVCameraRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 205341FC22B23DB000E72CED /* AVCameraRecorder.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		200CA88622B7937E000461A7 /* MovieRecorder.podspec */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = MovieRecorder.podspec; sourceTree = "<group>"; };
+		200CA88722B7937E000461A7 /* Package.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
 		202417C3229D0CD900E38F84 /* SCNViewProducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SCNViewProducer.swift; sourceTree = "<group>"; };
 		202417C5229D126D00E38F84 /* PixelBufferPool.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PixelBufferPool.swift; sourceTree = "<group>"; };
 		202417C7229D157F00E38F84 /* InternalErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InternalErrors.swift; sourceTree = "<group>"; };
@@ -71,6 +72,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		200CA88522B7936A000461A7 /* Deployment */ = {
+			isa = PBXGroup;
+			children = (
+				200CA88622B7937E000461A7 /* MovieRecorder.podspec */,
+				200CA88722B7937E000461A7 /* Package.swift */,
+			);
+			name = Deployment;
+			sourceTree = "<group>";
+		};
 		202417C9229D5DD500E38F84 /* Helpers */ = {
 			isa = PBXGroup;
 			children = (
@@ -88,6 +98,7 @@
 		204863572296316B002A8781 = {
 			isa = PBXGroup;
 			children = (
+				200CA88522B7936A000461A7 /* Deployment */,
 				2048636C229631E8002A8781 /* Source */,
 				2048636422963192002A8781 /* Products */,
 			);
@@ -244,7 +255,6 @@
 				202417CB229D5E0B00E38F84 /* CMSampleBufferExtension.swift in Sources */,
 				202417C6229D126D00E38F84 /* PixelBufferPool.swift in Sources */,
 				205341FD22B23DB000E72CED /* AVCameraRecorder.swift in Sources */,
-				205341FB22B221BD00E72CED /* VideoRenderShader.metal in Sources */,
 				2040EB9322AFA03C005BE8D7 /* MTLTextureProducer.swift in Sources */,
 				20400D23229F74C500056267 /* MovieRecorder.swift in Sources */,
 				2041040F22A8E4570084178A /* AVAudioProducer.swift in Sources */,

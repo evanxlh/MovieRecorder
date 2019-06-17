@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import  CoreGraphics
+import CoreGraphics
 
 internal final class MutexLock {
     

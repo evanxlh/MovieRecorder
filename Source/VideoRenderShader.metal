@@ -5,6 +5,8 @@
 //  Created by Evan Xie on 2019/6/13.
 //
 
+#if __METAL_MACOS__ || __METAL_IOS__
+
 #include <metal_stdlib>
 using namespace metal;
 
@@ -30,7 +32,7 @@ fragment float4 renderTexture(VertexOut vertexParam [[stage_in]],
 {
     return texture.sample(defaultSampler, vertexParam.texCoord);
 }
-
+#endif
 
 
 

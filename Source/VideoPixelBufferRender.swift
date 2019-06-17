@@ -5,6 +5,7 @@
 //  Created by Evan Xie on 2019/6/13.
 //
 
+#if !targetEnvironment(simulator)
 import Metal
 
 internal final class VideoPixelBufferRender {
@@ -181,5 +182,5 @@ fileprivate extension VideoPixelBufferRender {
         }
     }
 }
-
+#endif
 

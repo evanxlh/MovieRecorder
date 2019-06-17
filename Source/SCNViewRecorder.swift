@@ -5,6 +5,8 @@
 //  Created by Evan Xie on 2019/6/11.
 //
 
+#if !targetEnvironment(simulator)
+
 import SceneKit
 import AVFoundation
 
@@ -86,3 +88,5 @@ public final class SCNViewRecorder: Recordable {
         }
     }
 }
+
+#endif

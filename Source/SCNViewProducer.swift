@@ -5,6 +5,8 @@
 //  Created by Evan Xie on 2019/5/28.
 //
 
+#if !targetEnvironment(simulator)
+
 import CoreMedia
 import CoreVideo
 import SceneKit
@@ -183,3 +185,5 @@ extension SCNViewProducer: SCNSceneRendererDelegate {
         scnViewOriginDelegate?.renderer?(renderer, didRenderScene: scene, atTime: time)
     }
 }
+
+#endif
