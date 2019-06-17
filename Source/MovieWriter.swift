@@ -46,8 +46,8 @@ import AVFoundation
     fileprivate var videoTransform: CGAffineTransform?
     
     fileprivate var locker = MutexLock()
+    fileprivate var isAsyncSampleWriteEnabled: Bool = true
     fileprivate var workingQueue = DispatchQueue(label: "MovieWriter.WorkingQueue")
-    fileprivate var delegateQueue: DispatchQueue?
     
     fileprivate var state = State.idle
     fileprivate var isSessionStarted = false
@@ -76,11 +76,14 @@ import AVFoundation
     /**
      Init with movie file saved url, movie file container type and delegate callback queue.
      Delegate will be invoked on the internal queue if no callback queue specified.
+     
+     `enablesAsyncSampleWrite` is true by default. If you want `MovieWriter` to append
+     audio/video sample in sync way, set it to `false`.
      */
-     init(outputURL: URL, fileType: MovieFileType = .mov, delegateCallbackQueue: DispatchQueue? = nil) {
+    init(outputURL: URL, fileType: MovieFileType = .mov, enablesAsyncSampleWrite: Bool = true) {
         self.outputURL = outputURL
         self.fileType = fileType
-        self.delegateQueue = delegateCallbackQueue
+        self.isAsyncSampleWriteEnabled = enablesAsyncSampleWrite
     }
     
     //MARK: - Configurate Audio/Video Tracks
@@ -242,12 +245,7 @@ fileprivate extension MovieWriter {
         
         if state != newState {
             state = newState
-            
-            var queue = delegateQueue
-            if queue == nil {
-                queue = workingQueue
-            }
-            queue!.async {
+            workingQueue.async {
                 self.handleCallbackDelegate(state: newState, error: error)
             }
         }
@@ -363,7 +361,7 @@ fileprivate extension MovieWriter {
     
     func append(sampleBuffer: CMSampleBuffer, track: Track) {
         
-        workingQueue.async {
+        let task = {
             guard self.syncedState == .writing else {
                 print("Can not append sample buffer in current state: \(self.state)")
                 return
@@ -395,6 +393,12 @@ fileprivate extension MovieWriter {
             } else {
                 print("\(input.debugName) is not ready for appending sample buffer, so dropping buffer.")
             }
+        }
+        
+        if isAsyncSampleWriteEnabled {
+            workingQueue.async { task() }
+        } else {
+            task()
         }
     }
     

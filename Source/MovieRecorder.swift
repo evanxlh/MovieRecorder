@@ -88,6 +88,7 @@ public final class MovieRecorder: NSObject, Recordable {
     fileprivate var videoEncodingSettings: [String: Any]?
     
     fileprivate var asyncQueue: DispatchQueue
+    fileprivate var isAsyncSampleWriteEnabled: Bool = true
     
     //MARK: - Public APIs
     
@@ -122,13 +123,19 @@ public final class MovieRecorder: NSObject, Recordable {
     /// You can specify the creator, copyright, and so on, by setting this metadata.
     public var metadata: [AVMetadataItem]?
     
-    public init(outputURL: URL, audioProducer: MediaSampleProducer? = nil, videoProducer: MediaSampleProducer? = nil, movieFileType: MovieFileType = .mov) {
+    public init(outputURL: URL,
+                audioProducer: MediaSampleProducer? = nil,
+                videoProducer: MediaSampleProducer? = nil,
+                movieFileType: MovieFileType = .mov,
+                enablesAsyncSampleWrite: Bool = true)
+    {
         if audioProducer == nil && videoProducer == nil {
             fatalError("Movie recorder need MediaSampleProducer.")
         }
         
         movieFileURL = outputURL
         fileType = movieFileType
+        isAsyncSampleWriteEnabled = enablesAsyncSampleWrite
         asyncQueue = DispatchQueue(label: "MovieRecorder.AsyncQueue")
         
         if let producer = audioProducer, producer.producerType != .audio {
@@ -326,7 +333,7 @@ fileprivate extension MovieRecorder {
     
     func startWriter() {
         
-        movieWriter = MovieWriter(outputURL: movieFileURL, fileType: fileType, delegateCallbackQueue: nil)
+        movieWriter = MovieWriter(outputURL: movieFileURL, fileType: fileType, enablesAsyncSampleWrite: isAsyncSampleWriteEnabled)
         movieWriter?.delegate = self
         
         if let audioFormat = audioFormatDescription {
