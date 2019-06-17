@@ -5,6 +5,7 @@
 //  Created by Evan Xie on 2019/6/4.
 //
 
+import AVFoundation
 import CoreMedia
 import CoreVideo
 
@@ -107,14 +108,63 @@ public protocol MediaSampleProducer {
     
     func stopRunning()
     
-    func recommendedSettingsForFileType(_ fileType: MovieFileType) -> [String: Any]?
+    func recommendEncodingSettings(forFileType fileType: MovieFileType) -> [String: Any]?
 }
 
 public extension MediaSampleProducer {
     
-    func recommendedSettingsForFileType(_ fileType: MovieFileType) -> [String: Any]? {
+    func recommendEncodingSettings(forFileType fileType: MovieFileType) -> [String: Any]? {
+        switch producerType {
+        case .audio:
+            return (self as? AudioSampleProducer)?.recommendAudioEncodingSettings(forFileType: fileType)
+        case .video:
+            return (self as? VideoSampleProducer)?.recommendVideoEncodingSettings(forFileType: fileType)
+        }
+    }
+}
+
+public protocol AudioSampleProducer: MediaSampleProducer {
+    
+    func recommendAudioEncodingSettings(forFileType fileType: MovieFileType) -> AudioEncodingSettings?
+}
+
+public extension AudioSampleProducer {
+    func recommendAudioEncodingSettings(forFileType fileType: MovieFileType) -> AudioEncodingSettings? {
         return nil
     }
+}
+
+public protocol VideoSampleProducer: MediaSampleProducer {
+    
+    var videoResolution: CGSize { get }
+    
+    var videoFramerate: Int { get }
+    
+    func recommendVideoEncodingSettings(forFileType fileType: MovieFileType) -> VideoEncodingSettings?
+}
+
+public extension VideoSampleProducer {
+    
+    func recommendVideoEncodingSettings(forFileType fileType: MovieFileType) -> VideoEncodingSettings? {
+        let compressionProperties = [
+            AVVideoAverageBitRateKey: Float(videoResolution.width * videoResolution.height) * 7.2,
+            AVVideoExpectedSourceFrameRateKey: videoFramerate,
+            AVVideoMaxKeyFrameIntervalKey: videoFramerate,
+            AVVideoProfileLevelKey: AVVideoProfileLevelH264BaselineAutoLevel
+        ] as [String : Any]
+        
+        let videoSettings =  [
+            AVVideoCodecKey: AVVideoCodecH264,
+            AVVideoWidthKey: Int(videoResolution.width),
+            AVVideoHeightKey: Int(videoResolution.height),
+            AVVideoCompressionPropertiesKey : compressionProperties
+        ] as [String: Any]
+        
+        return videoSettings
+    }
+}
+
+public extension MediaSampleProducer {
     
     func addMediaSampleConsumer(_ consumer: MediaSampleConsumer) {
         sampleConsumers.append(consumer)

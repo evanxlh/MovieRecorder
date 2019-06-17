@@ -10,8 +10,8 @@ import CoreVideo
 import SceneKit
 import AVFoundation
 
-internal final class SCNViewProducer: NSObject, MediaSampleProducer {
-    
+internal final class SCNViewProducer: NSObject, VideoSampleProducer {
+   
     fileprivate var running: Bool = false
     fileprivate var queue: DispatchQueue
     fileprivate var semaphore: DispatchSemaphore
@@ -21,9 +21,6 @@ internal final class SCNViewProducer: NSObject, MediaSampleProducer {
     fileprivate var videoRender: SCNRenderer?
     fileprivate var render: VideoPixelBufferRender?
     
-    fileprivate var videoSize: CGSize
-    fileprivate var videoFramerate: Int
-    
     /// Used to how frequently the video sample produces.
     fileprivate var frameInterval: Int
     
@@ -31,6 +28,10 @@ internal final class SCNViewProducer: NSObject, MediaSampleProducer {
     fileprivate var currentFrameIndex: Int = 0
     
     //MARK: -  Properties
+    
+    private(set) var videoResolution: CGSize
+    
+    private(set) var videoFramerate: Int
     
     var isRunning: Bool {
         return running
@@ -44,14 +45,13 @@ internal final class SCNViewProducer: NSObject, MediaSampleProducer {
     
     deinit {
         semaphore.signal()
-        print("\(self) deinit")
     }
     
     //MARK: -  APIs
-    
+
     init(scnView: SCNView, videoSize: CGSize, videoFramerate: Int) {
         self.scnView = scnView
-        self.videoSize = videoSize
+        self.videoResolution = videoSize
         self.videoFramerate = videoFramerate
         self.semaphore = DispatchSemaphore(value: 1)
         let highQueue = DispatchQueue.global(qos: .userInteractive)
@@ -82,24 +82,6 @@ internal final class SCNViewProducer: NSObject, MediaSampleProducer {
         videoRender = nil
         render = nil
     }
-    
-    func recommendedSettingsForFileType(_ fileType: MovieFileType) -> [String : Any]? {
-        let compressionProperties = [
-            AVVideoAverageBitRateKey: Float(videoSize.width * videoSize.height) * 7.2,
-            AVVideoExpectedSourceFrameRateKey: videoFramerate,
-            AVVideoMaxKeyFrameIntervalKey: videoFramerate,
-            AVVideoProfileLevelKey: AVVideoProfileLevelH264BaselineAutoLevel
-        ] as [String : Any]
-        
-        let videoSettings =  [
-            AVVideoCodecKey: AVVideoCodecH264,
-            AVVideoWidthKey: Int(videoSize.width),
-            AVVideoHeightKey: Int(videoSize.height),
-            AVVideoCompressionPropertiesKey : compressionProperties
-        ] as [String: Any]
-        
-        return videoSettings
-    }
 }
 
 //MARK: - Privates
@@ -107,7 +89,7 @@ internal final class SCNViewProducer: NSObject, MediaSampleProducer {
 fileprivate extension SCNViewProducer {
     
     func prepareMetalRender() throws {
-        render = try VideoPixelBufferRender(device: scnView.device!, textureSize: videoSize)
+        render = try VideoPixelBufferRender(device: scnView.device!, textureSize: videoResolution)
         videoRender = SCNRenderer(device: scnView.device, options: nil)
         videoRender!.scene = scnView.scene
     }
@@ -119,8 +101,6 @@ fileprivate extension SCNViewProducer {
         semaphore.wait()
         
         var res: (CVPixelBuffer, MTLTexture)? = nil
-        let commandBuffer = videoRender!.commandQueue!.makeCommandBuffer()!
-        
         do {
             res = try render?.newRenderTexture()
         } catch {
@@ -136,6 +116,8 @@ fileprivate extension SCNViewProducer {
             return
         }
         
+        let commandBuffer = videoRender!.commandQueue!.makeCommandBuffer()!
+        
         commandBuffer.addCompletedHandler({ [weak self] (_) in
             defer { self?.semaphore.signal() }
             guard let strongSelf = self else { return }
@@ -149,7 +131,7 @@ fileprivate extension SCNViewProducer {
         let renderPass = render!.newRenderPass()
         renderPass.colorAttachments[0].texture = res!.1
         
-        let viewport = CGRect(origin: .zero, size: videoSize)
+        let viewport = CGRect(origin: .zero, size: videoResolution)
         videoRender?.scene = scnView.scene
         videoRender?.pointOfView = scnView.pointOfView
         videoRender?.render(atTime: time, viewport: viewport, commandBuffer: commandBuffer, passDescriptor: renderPass)

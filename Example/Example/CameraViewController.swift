@@ -38,7 +38,9 @@ class CameraViewController: RecorderViewController {
         var movieURL = URL(fileURLWithPath: NSTemporaryDirectory())
         movieURL = movieURL.appendingPathComponent("myMovie.mp4")
         
-        recorder = AVCameraRecorder(session: session, enablesAudio: false, outputURL: movieURL)
+        let videoSize = CGSize(width: 3840, height: 2160)
+        let configuraiton = RecorderConfiguration(outputURL: movieURL, videoFramerate: 30, videoResulution: videoSize, enablesAudioTrack: false, fileType: .mov)
+        recorder = AVCameraRecorder(session: session, configuration: configuraiton)
         recorder?.metadata = SCNViewRecorder.commonMetaldata(withCreator: "Evan Xie", copyrights: "Evan Xie, 2019")
         
         recorder?.errorHandler = { [weak self] error in

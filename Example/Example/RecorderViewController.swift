@@ -29,11 +29,8 @@ class RecorderViewController: UIViewController {
         return button
     }()
     
-    var recorderDidStart: (() -> Void)?
-    
     override func viewDidLoad() {
         super.viewDidLoad()
-        createRecorder()
     }
     
     override var shouldAutorotate: Bool {
@@ -58,6 +55,13 @@ class RecorderViewController: UIViewController {
         if recordButton.superview == nil {
             addRecordButton()
         }
+        
+        createRecorder()
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        recorder = nil
     }
     
     private func addRecordButton() {
@@ -87,14 +91,28 @@ class RecorderViewController: UIViewController {
         // Implement in subclass.
     }
     
+    func willStartRecording() {
+        
+    }
+    
+    func didStartRecording() {
+        
+    }
+    
+    func didStopRecording() {
+        
+    }
+    
     func startRecording() {
+        
+        willStartRecording()
         
         let button = recordButton
         button.isEnabled = false
         recorder?.startRecording(completionBlock: { [weak self] in
             button.setTitle("STOP", for: .normal)
             button.isEnabled = true
-            self?.recorderDidStart?()
+            self?.didStartRecording()
         })
     }
     
@@ -104,6 +122,9 @@ class RecorderViewController: UIViewController {
         button.isEnabled = false
         
         recorder?.stopRecording(completionBlock: { [weak self] (movieURL) in
+            
+            self?.didStopRecording()
+            
             button.isEnabled = true
             button.setTitle("REC", for: .normal)
             let playerViewController = AVPlayerViewController()

@@ -7,7 +7,7 @@
 
 import AVFoundation
 
-public final class AVAudioProducer: NSObject, MediaSampleProducer {
+public final class AVAudioProducer: NSObject, AudioSampleProducer {
     
     fileprivate var queue: DispatchQueue
     fileprivate var running: Bool = false
@@ -57,8 +57,8 @@ public final class AVAudioProducer: NSObject, MediaSampleProducer {
         running = false
     }
     
-    public func recommendedSettingsForFileType(_ fileType: MovieFileType) -> [String : Any]? {
-        return forwarder.output.recommendedAudioSettingsForAssetWriter(writingTo: fileType.rawType) as? [String: Any]
+    public func recommendAudioEncodingSettings(forFileType fileType: MovieFileType) -> AudioEncodingSettings? {
+        return forwarder.output.recommendedAudioSettingsForAssetWriter(writingTo: fileType.rawType) as? AudioEncodingSettings
     }
 }
 

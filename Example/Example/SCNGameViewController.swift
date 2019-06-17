@@ -69,7 +69,10 @@ class SCNGameViewController: RecorderViewController {
         var movieURL = URL(fileURLWithPath: NSTemporaryDirectory())
         movieURL = movieURL.appendingPathComponent("myMovie.mp4")
         
-        recorder = SCNViewRecorder(view: view as! SCNView, enablesAudio: true, outputURL: movieURL)
+        let videoSize = CGSize(width: view.bounds.width * UIScreen.main.nativeScale,
+                               height: view.bounds.height * UIScreen.main.nativeScale)
+        let configuration = RecorderConfiguration(outputURL: movieURL, videoFramerate: 60, videoResulution: videoSize)
+        recorder = SCNViewRecorder(view: view as! SCNView, configuration: configuration)
         recorder?.metadata = SCNViewRecorder.commonMetaldata(withCreator: "Evan Xie", copyrights: "Evan Xie, 2019")
     
         recorder?.errorHandler = { [weak self] error in

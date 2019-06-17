@@ -127,7 +127,7 @@ internal final class VideoPixelBufferRender {
     func copyTextureByBlitEncoder(sourceTexture: MTLTexture, targetTexture: MTLTexture, commandBuffer: MTLCommandBuffer) {
         let blitEncoder = commandBuffer.makeBlitCommandEncoder()
         let origin = MTLOrigin(x: 0, y: 0, z: 0)
-        let size = MTLSize(width: sourceTexture.width, height: sourceTexture.height, depth: 0)
+        let size = MTLSize(width: sourceTexture.width, height: sourceTexture.height, depth: 1)
         
         blitEncoder?.copy(
             from: sourceTexture,

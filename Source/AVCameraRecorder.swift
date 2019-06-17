@@ -36,13 +36,13 @@ public final class AVCameraRecorder: Recordable {
     /// You can specify the final recorded video orientation. Default is portrait orientation.
     public var recordingOrientation: AVCaptureVideoOrientation = .portrait
     
-    public init(session: AVCameraSession, enablesAudio: Bool = false, outputURL: URL) {
-        if enablesAudio {
-            audioProducer = AVAudioProducer(audioQueue: nil)
+    public init(session: AVCameraSession, configuration: RecorderConfiguration) {
+        if configuration.enablesAudioTrack {
+            audioProducer = AVAudioProducer()
         }
         cameraSession = session
-        videoProducer = AVVideoProducer(videoQueue: nil)
-        internalRecorder = MovieRecorder(outputURL: outputURL, audioProducer: audioProducer, videoProducer: videoProducer, movieFileType: .mov)
+        videoProducer = AVVideoProducer(videoSize: configuration.videoResulution, videoFramerate: configuration.videoFramerate)
+        internalRecorder = MovieRecorder(outputURL: configuration.outputURL, audioProducer: audioProducer, videoProducer: videoProducer, movieFileType: .mov)
     }
     
     public func startRecording(completionBlock: @escaping (() -> Void)) {

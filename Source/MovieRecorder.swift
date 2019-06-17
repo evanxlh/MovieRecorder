@@ -82,7 +82,11 @@ public final class MovieRecorder: NSObject, Recordable {
     fileprivate var stopCompletionCallback: ((URL) -> Void)?
     
     fileprivate var audioFormatDescription: CMAudioFormatDescription?
+    fileprivate var audioEncodingSettings: [String: Any]?
+    
     fileprivate var videoFormatDescription: CMVideoFormatDescription?
+    fileprivate var videoEncodingSettings: [String: Any]?
+    
     fileprivate var asyncQueue: DispatchQueue
     
     //MARK: - Public APIs
@@ -272,10 +276,13 @@ fileprivate extension MovieRecorder {
         case let .audioSampleBuffer(buffer):
             if audioFormatDescription == nil {
                 audioFormatDescription = CMSampleBufferGetFormatDescription(buffer)
+                audioEncodingSettings = producer.recommendEncodingSettings(forFileType: fileType)
             }
         case let .videoSampleBuffer(buffer):
             if videoFormatDescription == nil {
                 videoFormatDescription = CMSampleBufferGetFormatDescription(buffer)
+                videoEncodingSettings = producer.recommendEncodingSettings(forFileType: fileType)
+                
                 if let videoProducer = producer as? AVVideoProducer {
                     videoTransform = videoProducer.videoTransform
                 }

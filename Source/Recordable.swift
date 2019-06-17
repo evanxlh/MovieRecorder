@@ -21,6 +21,32 @@ public enum MRError: Error {
     case failedToRecord(underlyingError: Error)
 }
 
+public struct RecorderConfiguration {
+    public var outputURL: URL
+    public var videoFramerate: Int
+    public var videoResulution: CGSize
+    public var enablesAudioTrack: Bool
+    public var fileType: MovieFileType
+    
+    /**
+     Custom recorder configuration.
+     
+     - Parameters:
+         - outputURL: The movie saved file url.
+         - videoFramerate: The video framerate of final recorded movie, it can not exceed the framerate of source video producer.
+         - videoResulution: The final video resolution of your recorded movie.
+         - enablesAudioTrack: Audio track is enabled by default.
+         - fileType: The output movie file container type, and determins the file extension.
+     */
+    public init(outputURL: URL, videoFramerate: Int = 30, videoResulution: CGSize, enablesAudioTrack: Bool = true, fileType: MovieFileType = .mov) {
+        self.outputURL = outputURL
+        self.videoFramerate = videoFramerate
+        self.videoResulution = videoResulution
+        self.enablesAudioTrack = enablesAudioTrack
+        self.fileType = fileType
+    }
+}
+
 public protocol Recordable {
     
     /// Indicates recorder is recording or not.

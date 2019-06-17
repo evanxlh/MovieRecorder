@@ -7,7 +7,7 @@
 
 import AVFoundation
 
-public final class AVVideoProducer: NSObject, MediaSampleProducer {
+public final class AVVideoProducer: NSObject, VideoSampleProducer {
     
     fileprivate var queue: DispatchQueue
     fileprivate var running: Bool = false
@@ -38,7 +38,14 @@ public final class AVVideoProducer: NSObject, MediaSampleProducer {
     
     public var videoTransform: CGAffineTransform? = nil
     
-    public init(videoQueue: DispatchQueue? = nil) {
+    public private(set) var videoResolution: CGSize
+    
+    public private(set) var videoFramerate: Int
+    
+    public init(videoQueue: DispatchQueue? = nil, videoSize: CGSize, videoFramerate: Int) {
+        self.videoResolution = videoSize
+        self.videoFramerate = videoFramerate
+        
         if videoQueue == nil {
             let highQueue = DispatchQueue.global(qos: .userInteractive)
             queue = DispatchQueue(label: "AVVideoProducer.VideoQueue", attributes: [], target: highQueue)
@@ -58,10 +65,6 @@ public final class AVVideoProducer: NSObject, MediaSampleProducer {
         guard running else { return }
         running = false
         
-    }
-    
-    public func recommendedSettingsForFileType(_ fileType: MovieFileType) -> [String : Any]? {
-        return forwarder.output.recommendedVideoSettingsForAssetWriter(writingTo: fileType.rawType)
     }
 }
 

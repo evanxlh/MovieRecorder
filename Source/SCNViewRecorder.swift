@@ -34,13 +34,19 @@ public final class SCNViewRecorder: Recordable {
         set { internalRecorder.errorHandler = newValue }
     }
     
-    public init(view: SCNView, enablesAudio: Bool = false, outputURL: URL) {
-        if enablesAudio {
+    public init(view: SCNView, configuration: RecorderConfiguration) {
+        if configuration.enablesAudioTrack {
             audioSession = AVCameraSession()
             audioProducer = AVAudioProducer(audioQueue: nil)
         }
-        videoProducer = SCNViewProducer(scnView: view, videoSize: view.bounds.size.scaleBy(UIScreen.main.nativeScale), videoFramerate: 60)
-        internalRecorder = MovieRecorder(outputURL: outputURL, audioProducer: audioProducer, videoProducer: videoProducer, movieFileType: .mov)
+        
+        videoProducer = SCNViewProducer(scnView: view,
+                                        videoSize: configuration.videoResulution,
+                                        videoFramerate: configuration.videoFramerate)
+        internalRecorder = MovieRecorder(outputURL: configuration.outputURL,
+                                         audioProducer: audioProducer,
+                                         videoProducer: videoProducer,
+                                         movieFileType: configuration.fileType)
     }
     
     public func startRecording(completionBlock: @escaping (() -> Void)) {

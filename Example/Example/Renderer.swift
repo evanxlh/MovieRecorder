@@ -10,6 +10,7 @@
 import Metal
 import MetalKit
 import simd
+import MovieRecorder
 
 // The 256 byte aligned size of our uniform structure
 let alignedUniformsSize = (MemoryLayout<Uniforms>.size & ~0xFF) + 0x100
@@ -43,6 +44,8 @@ class Renderer: NSObject, MTKViewDelegate {
     
     var mesh: MTKMesh
     
+    weak var recorder: MTLTextureRecorder? = nil
+    
     init?(metalKitView: MTKView) {
         self.device = metalKitView.device!
         guard let queue = self.device.makeCommandQueue() else { return nil }
@@ -59,7 +62,7 @@ class Renderer: NSObject, MTKViewDelegate {
         
         metalKitView.depthStencilPixelFormat = MTLPixelFormat.depth32Float_stencil8
         metalKitView.colorPixelFormat = MTLPixelFormat.bgra8Unorm_srgb
-        metalKitView.sampleCount = 1
+//        metalKitView.sampleCount = 4
         
         let mtlVertexDescriptor = Renderer.buildMetalVertexDescriptor()
         
@@ -207,7 +210,7 @@ class Renderer: NSObject, MTKViewDelegate {
         let modelMatrix = matrix4x4_rotation(radians: rotation, axis: rotationAxis)
         let viewMatrix = matrix4x4_translation(0.0, 0.0, -8.0)
         uniforms[0].modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
-        rotation += 0.01
+        rotation += 0.02
     }
     
     func draw(in view: MTKView) {
@@ -229,6 +232,8 @@ class Renderer: NSObject, MTKViewDelegate {
             /// Delay getting the currentRenderPassDescriptor until we absolutely need it to avoid
             ///   holding onto the drawable and blocking the display pipeline any longer than necessary
             let renderPassDescriptor = view.currentRenderPassDescriptor
+            
+            let currentTime = CACurrentMediaTime()
             
             if let renderPassDescriptor = renderPassDescriptor, let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) {
                 
@@ -273,6 +278,10 @@ class Renderer: NSObject, MTKViewDelegate {
                 renderEncoder.popDebugGroup()
                 
                 renderEncoder.endEncoding()
+                
+                if let recorder = self.recorder {
+                    recorder.recordTexture(renderPassDescriptor.colorAttachments[0].texture!, commandBuffer: commandBuffer, atTime: currentTime)
+                }
                 
                 if let drawable = view.currentDrawable {
                     commandBuffer.present(drawable)
