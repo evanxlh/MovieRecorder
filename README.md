@@ -19,12 +19,12 @@ Below are some example codes, for detailed samples, see `Example` project.
   movieURL = movieURL.appendingPathComponent("myMovie.mp4")
         
   let videoSize = CGSize(width: view.bounds.width * UIScreen.main.nativeScale,
-                         height: view.bounds.height * UIScreen.main.nativeScale)
+                        height: view.bounds.height * UIScreen.main.nativeScale)
   let configuration = RecorderConfiguration(outputURL: movieURL,
-                                            videoFramerate: 60,
-                                            videoResulution: videoSize)
+                                       videoFramerate: 60,
+                                      videoResulution: videoSize)
   let recorder = SCNViewRecorder(view: view as! SCNView,
-                                 configuration:configuration)
+                        configuration:configuration)
   recorder.errorHandler = {
   	// Handle error
   }
@@ -51,10 +51,10 @@ Below are some example codes, for detailed samples, see `Example` project.
         
   let videoSize = CGSize(width: 3840, height: 2160)
   let configuraiton = RecorderConfiguration(outputURL: movieURL,
-		                 videoFramerate: 30,
-		                 videoResulution: videoSize, 
-		                 enablesAudioTrack: false, 
-		                 fileType: .mov)
+		                       videoFramerate: 30,
+		                      videoResulution: videoSize, 
+		                    enablesAudioTrack: false, 
+		                             fileType: .mov)
   let recorder = AVCameraRecorder(session: session, configuration:configuraiton)
   recorder.errorHandler = {
   	  // Handle error
@@ -74,8 +74,7 @@ Below are some example codes, for detailed samples, see `Example` project.
 
 ```
         
-  let recorder = MTLTextureRecorder(device: `MTLDevice`,
-										   configuration:configuration)
+  let recorder = MTLTextureRecorder(device: `MTLDevice`, configuration:`configuration`)
   recorder.errorHandler = {
   	// Handle error
   }
@@ -96,9 +95,9 @@ Below are some example codes, for detailed samples, see `Example` project.
   let audioProducer: AudioSampleProducer = ...
   let videoProduer: VideoSampleProducer = ...
   let recorder = MovieRecorder(outputURL: `fileURL`,
-								   audioProducer: audioProducer,
-                              videoProducer: videoProducer,
-                              movieFileType: .mov)
+                           audioProducer: audioProducer,
+                           videoProducer: videoProducer,
+                           movieFileType: .mov)
        
   recorder.errorHandler = {
   	// Handle error
